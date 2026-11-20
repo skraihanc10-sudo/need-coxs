@@ -1,0 +1,363 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String   @default("")
+  passwordHash String
+  role         String
+  referralCode String   @unique
+  referredById String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  store      Store?
+  rider      DeliveryProfile?
+  addresses  Address[]
+  cartItems  CartItem[]
+  orders     Order[]           @relation("CustomerOrders")
+  reviews    Review[]
+  wallet     Wallet?
+  walletTxns WalletTxn[]
+  notices    Notice[]
+  events     OrderEvent[]
+  payouts    Payout[]          @relation("PayoutActor")
+  thread     Thread?
+  messages   Message[]
+}
+
+model Store {
+  id             String   @id @default(cuid())
+  ownerId        String   @unique
+  owner          User     @relation(fields: [ownerId], references: [id])
+  name           String
+  slug           String   @unique
+  tagline        String   @default("")
+  about          String   @default("")
+  area           String
+  address        String
+  city           String   @default("Dhaka")
+  lat            Float
+  lng            Float
+  phone          String
+  hue            Int      @default(210)
+  status         String   @default("PENDING")
+  commissionRate Float    @default(12)
+  rating         Float    @default(0)
+  reviewCount    Int      @default(0)
+  openTime       String   @default("08:00")
+  closeTime      String   @default("21:00")
+  deliveryFee    Int      @default(60)
+  minOrder       Int      @default(150)
+  createdAt      DateTime @default(now())
+
+  prices  Price[]
+  slots   TimeSlot[]
+  orders  Order[]
+  reviews Review[]
+  payouts Payout[]
+  riders  DeliveryProfile[]
+  coupons Coupon[]
+  faqs    Faq[]
+}
+
+model Item {
+  id       String  @id @default(cuid())
+  audience String
+  name     String
+  nameBn   String
+  unit     String
+  unitBn   String
+  sort     Int     @default(0)
+  active   Boolean @default(true)
+  prices   Price[]
+}
+
+model Kind {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  name   String
+  nameBn String
+  sort   Int     @default(0)
+  prices Price[]
+}
+
+model Price {
+  id        String     @id @default(cuid())
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      Item       @relation(fields: [itemId], references: [id])
+  kindId    String
+  kind      Kind       @relation(fields: [kindId], references: [id])
+  amount    Int
+  active    Boolean    @default(true)
+  cartItems CartItem[]
+
+  @@unique([storeId, itemId, kindId])
+}
+
+model TimeSlot {
+  id        String  @id @default(cuid())
+  storeId   String
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  label     String
+  startTime String
+  endTime   String
+  capacity  Int     @default(10)
+  active    Boolean @default(true)
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  line1     String
+  area      String
+  city      String  @default("Dhaka")
+  phone     String
+  lat       Float?
+  lng       Float?
+  isDefault Boolean @default(false)
+  orders    Order[]
+}
+
+model CartItem {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priceId  String
+  price    Price  @relation(fields: [priceId], references: [id], onDelete: Cascade)
+  quantity Int    @default(1)
+
+  @@unique([userId, priceId])
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  title       String
+  detail      String    @default("")
+  type        String
+  value       Int
+  minOrder    Int       @default(0)
+  maxDiscount Int?
+  storeId     String?
+  store       Store?    @relation(fields: [storeId], references: [id])
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  usageLimit  Int?
+  usedCount   Int       @default(0)
+  orders      Order[]
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  customerId      String
+  customer        User     @relation("CustomerOrders", fields: [customerId], references: [id])
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id])
+  addressId       String?
+  address         Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  addressSnapshot String
+  pickupDate      String
+  pickupSlot      String
+  deliveryDate    String
+  deliverySlot    String
+  status          String   @default("PENDING")
+  paymentMethod   String
+  paymentStatus   String   @default("UNPAID")
+  subtotal        Int
+  deliveryFee     Int
+  discount        Int      @default(0)
+  walletUsed      Int      @default(0)
+  total           Int
+  couponId        String?
+  coupon          Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode      String?
+  preference      String   @default("Regular")
+  notes           String   @default("")
+  cancelReason    String?
+  riderId         String?
+  rider           DeliveryProfile? @relation(fields: [riderId], references: [id], onDelete: SetNull)
+  commissionRate  Float    @default(0)
+  commissionAmt   Int      @default(0)
+  storeEarning    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items   OrderItem[]
+  events  OrderEvent[]
+  review  Review?
+  payment Payment?
+
+  @@index([customerId])
+  @@index([storeId, status])
+  @@index([riderId])
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  orderId  String
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name     String
+  kind     String
+  unit     String
+  price    Int
+  quantity Int
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  note      String   @default("")
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}
+
+model DeliveryProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  storeId   String?
+  store     Store?  @relation(fields: [storeId], references: [id])
+  vehicle   String
+  zone      String
+  available Boolean @default(true)
+  orders    Order[]
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  customerId String
+  customer   User     @relation(fields: [customerId], references: [id])
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id])
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+}
+
+model Wallet {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id])
+  balance Int    @default(0)
+}
+
+model WalletTxn {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int
+  type      String
+  note      String
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  provider  String
+  amount    Int
+  status    String
+  reference String?
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id         String  @id @default(cuid())
+  title      String
+  titleBn    String
+  subtitle   String
+  subtitleBn String
+  href       String
+  active     Boolean @default(true)
+  sort       Int     @default(0)
+}
+
+model Payout {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  amount    Int
+  method    String
+  account   String
+  status    String   @default("REQUESTED")
+  note      String   @default("")
+  actorId   String?
+  actor     User?    @relation("PayoutActor", fields: [actorId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Faq {
+  id       String  @id @default(cuid())
+  storeId  String?
+  store    Store?  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  question String
+  answer   String
+  sort     Int     @default(0)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  channel   String
+  title     String
+  body      String
+  status    String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Thread {
+  id         String    @id @default(cuid())
+  customerId String    @unique
+  customer   User      @relation(fields: [customerId], references: [id])
+  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+}
+
+model Inquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String   @default("")
+  topic     String   @default("Pickup")
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+}

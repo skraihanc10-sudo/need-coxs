@@ -71,14 +71,11 @@ Cash on delivery is live. bKash, SSLCommerz, and Stripe are adapters in `src/lib
 
 App panels (customer, laundry, rider, admin) use the blue and cyan tokens in `src/theme/tokens.css`. The public site uses a separate green, yellow, and navy block on `.public-site` in the same file, so both palettes can be switched without hunting through screens. The product name lives in `src/theme/brand.ts`.
 
-## Public preview
+## Deploy
 
-This environment serves the app on port 47291 inside the agent machine. It is not on the public internet. To give the owner a link:
+Coolify and any other Docker host: follow [DEPLOY.md](DEPLOY.md). The image listens on port 3000, keeps SQLite at `/data/needcoxs.db`, and seeds demo accounts only when that database has no users.
 
-1. Host the repo on a Node service that keeps a disk (Render, Fly.io, or Railway). Use the Dockerfile. Set `AUTH_SECRET`. SQLite is stored in `prisma/dev.db`, so the disk must persist or you run `npm run db:setup` on boot.
-2. Vercel can host the Next.js app, but serverless SQLite will not keep orders. Point `DATABASE_URL` at Postgres and change `provider` in `prisma/schema.prisma` to `postgresql` before that deploy.
-
-There is no Vercel token in this session, so a public URL was not created from here.
+`npm run dev` serves a local preview on port 47291. That process is not on the public internet.
 
 ## Panels
 

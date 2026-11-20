@@ -1,5 +1,5 @@
 import { db } from "./db"
-import { brand } from "@/theme/brand"
+import { brand } from "../theme/brand"
 
 export const SETTING_DEFAULTS: Record<string, string> = {
   siteName: brand.name,

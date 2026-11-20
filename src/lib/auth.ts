@@ -1,4 +1,4 @@
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { SignJWT, jwtVerify } from "jose"
 import { db } from "./db"
@@ -21,8 +21,24 @@ export async function setSession(
     sameSite: "lax",
     path: "/",
     maxAge: days * 86400,
-    secure: process.env.NODE_ENV === "production",
+    secure: await sessionCookieSecure(),
   })
+}
+
+async function sessionCookieSecure() {
+  const configured = process.env.AUTH_URL || process.env.SITE_URL || ""
+  if (configured.startsWith("https://")) return true
+  if (configured.startsWith("http://")) return false
+  if (process.env.AUTH_TRUST_HOST === "true") {
+    try {
+      const forwarded = (await headers()).get("x-forwarded-proto")?.split(",")[0]?.trim()
+      if (forwarded === "https") return true
+      if (forwarded === "http") return false
+    } catch {
+      // headers() is only available during a request
+    }
+  }
+  return process.env.NODE_ENV === "production"
 }
 
 export async function clearSession() {

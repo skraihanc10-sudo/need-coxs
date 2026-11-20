@@ -1,41 +1,42 @@
 import Link from "next/link"
-import { PageBanner } from "@/components/site/chrome"
+import { PageBanner, Partners } from "@/components/site/chrome"
 import { brand } from "@/theme/brand"
-import { db } from "@/lib/db"
 
-export default async function AboutPage() {
-  const stores = await db.store.count({ where: { status: "APPROVED" } })
+export default function AboutPage() {
   return (
     <div>
-      <PageBanner title={`About ${brand.name}`} crumb="About" />
-      <article className="site-wrap grid gap-10 py-14 md:grid-cols-2">
-        <div className="space-y-4 text-sm leading-7">
-          <p className="site-kicker">The desk</p>
-          <h2 className="text-3xl font-extrabold">We send the order to a shop you can name.</h2>
-          <p>
-            {brand.name} started as a booking desk for wash houses that already had a gate, a press, and a rider, but no shared way for a household to compare them. The clothes never come to us. They go to the laundry you picked.
-          </p>
-          <p>
-            Customers in {brand.city} book in English or Bangla, pay cash when the bag returns, and follow a status line from placed to completed. Shops keep their own prices. Riders see only the jobs assigned to them.
-          </p>
-          <p>There are {stores} approved laundries on the desk today, plus one waiting for a yes from the admin.</p>
+      <PageBanner title="About" crumbs={["About"]} />
+      <section className="site-wrap grid items-center gap-10 py-16 md:grid-cols-2">
+        <div className="relative">
+          <img src="/marketing/svc-wash.jpg" alt="A washing machine in a Need Cox's partner laundry" className="h-[460px] w-full object-cover" />
+          <div className="absolute bottom-6 left-6 grid size-28 place-items-center bg-[var(--pub-green)] text-center text-white">
+            <span className="text-4xl leading-none">8+</span>
+            <span className="text-sm">Years</span>
+          </div>
         </div>
-        <div className="grid gap-3">
-          {[
-            ["Customers", "Browse, bag clothes, pick two slots, track the order, and message the desk."],
-            ["Laundries", "Set cloth prices, accept work, assign a rider, and request a payout."],
-            ["Riders", "See the address, call, open the map, and mark picked up or delivered."],
-          ].map(([title, body]) => (
-            <article key={title} className="surface-card p-5">
-              <h3 className="font-extrabold">{title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{body}</p>
-            </article>
-          ))}
+        <div>
+          <p className="text-sm font-bold text-[var(--pub-green)]">Since 2016</p>
+          <h2 className="mt-2 text-4xl md:text-5xl">To provide on-time delivery and a named laundry.</h2>
+          <p className="mt-4 text-sm leading-7 text-[var(--pub-muted)]">
+            {brand.name} books the rider and the slot. The wash house you choose does the work, at the price on its menu. That is the whole product.
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {[
+              ["Household service", "Kilo bags for everyday cotton."],
+              ["Formal care", "Sarees and suits stay on piece rates."],
+              ["Cash or wallet", "Pay the rider, or spend wallet credit."],
+              ["A desk you can call", brand.supportPhone],
+            ].map(([title, text]) => (
+              <div key={title}>
+                <h3 className="text-lg normal-case">{title}</h3>
+                <p className="text-sm text-[var(--pub-muted)]">{text}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/app" className="pub-btn mt-6">Book now</Link>
         </div>
-      </article>
-      <div className="site-wrap pb-16">
-        <Link href="/partner" className="inline-flex h-12 items-center rounded-full bg-primary px-6 font-extrabold text-primary-foreground">List a laundry</Link>
-      </div>
+      </section>
+      <Partners />
     </div>
   )
 }

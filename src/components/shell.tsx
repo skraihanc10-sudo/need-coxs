@@ -143,6 +143,11 @@ export function AdminShell({ name, children }: { name: string; children: React.R
     ["/admin/faqs", "FAQs"],
     ["/admin/payouts", "Payouts"],
     ["/admin/reports", "Reports"],
+    ["/admin/earnings", "Earnings"],
+    ["/admin/zones", "Zones"],
+    ["/admin/gateways", "Gateways"],
+    ["/admin/pages", "Pages"],
+    ["/admin/profile", "Profile"],
     ["/admin/notifications", "Notifications"],
     ["/admin/settings", "Settings"],
   ]

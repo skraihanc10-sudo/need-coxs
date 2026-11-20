@@ -182,6 +182,75 @@ export async function requestPayout(formData: FormData) {
   redirect("/vendor/payouts?ok=1")
 }
 
+export async function saveStoreCategory(formData: FormData) {
+  const { store } = await storeUser()
+  const name = String(formData.get("name") || "").trim()
+  if (!name) redirect("/vendor/categories")
+  await db.storeCategory.create({ data: { storeId: store.id, name } })
+  redirect("/vendor/categories")
+}
+
+export async function deleteStoreCategory(formData: FormData) {
+  const { store } = await storeUser()
+  await db.storeCategory.deleteMany({ where: { id: String(formData.get("id") || ""), storeId: store.id } })
+  redirect("/vendor/categories")
+}
+
+export async function saveAttribute(formData: FormData) {
+  const { store } = await storeUser()
+  const name = String(formData.get("name") || "").trim()
+  const value = String(formData.get("value") || "").trim()
+  if (!name || !value) redirect("/vendor/attributes?error=Add%20a%20name%20and%20a%20value.")
+  await db.productAttribute.create({ data: { storeId: store.id, name, value } })
+  redirect("/vendor/attributes")
+}
+
+export async function deleteAttribute(formData: FormData) {
+  const { store } = await storeUser()
+  await db.productAttribute.deleteMany({ where: { id: String(formData.get("id") || ""), storeId: store.id } })
+  redirect("/vendor/attributes")
+}
+
+export async function saveGallery(formData: FormData) {
+  const { store } = await storeUser()
+  const caption = String(formData.get("caption") || "").trim()
+  const image = String(formData.get("image") || "/marketing/news-foldline.jpg")
+  if (!caption) redirect("/vendor/gallery?error=Add%20a%20caption.")
+  await db.galleryItem.create({ data: { storeId: store.id, caption, image } })
+  redirect("/vendor/gallery")
+}
+
+export async function deleteGallery(formData: FormData) {
+  const { store } = await storeUser()
+  await db.galleryItem.deleteMany({ where: { id: String(formData.get("id") || ""), storeId: store.id } })
+  redirect("/vendor/gallery")
+}
+
+export async function addStoreRider(formData: FormData) {
+  const { store } = await storeUser()
+  const name = String(formData.get("name") || "").trim()
+  const email = String(formData.get("email") || "").trim().toLowerCase()
+  const password = String(formData.get("password") || "")
+  const phone = String(formData.get("phone") || "")
+  if (!name || !email.includes("@") || password.length < 6) {
+    redirect("/vendor/riders?error=Name%2C%20email%20and%20a%206%2B%20character%20password.")
+  }
+  const bcrypt = await import("bcryptjs")
+  await db.user.create({
+    data: {
+      name,
+      email,
+      phone,
+      passwordHash: await bcrypt.default.hash(password, 10),
+      role: "DELIVERY",
+      referralCode: `RD${Math.floor(10000 + Math.random() * 90000)}`,
+      wallet: { create: { balance: 0 } },
+      rider: { create: { vehicle: "Bike", zone: store.area, storeId: store.id } },
+    },
+  })
+  redirect("/vendor/riders?ok=1")
+}
+
 export async function updateStoreProfile(formData: FormData) {
   const { store } = await storeUser()
   await db.store.update({

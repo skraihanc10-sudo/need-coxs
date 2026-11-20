@@ -6,13 +6,14 @@ import { taka } from "@/lib/format"
 
 export default async function VendorOrders({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireUser(["STORE"], "/vendor/orders")
-  const { tab = "new" } = await searchParams
-  const past = tab === "past"
+  const { tab = "pending" } = await searchParams
+  const status =
+    tab === "cancelled" ? { in: ["CANCELLED", "REJECTED"] } :
+    tab === "completed" ? "DELIVERED" :
+    tab === "active" ? { notIn: ["DELIVERED", "CANCELLED", "REJECTED", "PENDING"] } :
+    "PENDING"
   const orders = await db.order.findMany({
-    where: {
-      storeId: user.store!.id,
-      status: past ? { in: ["DELIVERED", "CANCELLED", "REJECTED"] } : { notIn: ["DELIVERED", "CANCELLED", "REJECTED"] },
-    },
+    where: { storeId: user.store!.id, status },
     include: { customer: true },
     orderBy: { createdAt: "desc" },
   })
@@ -20,8 +21,14 @@ export default async function VendorOrders({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader title="Orders" />
       <div className="seg px-4">
-        <Link href="/vendor/orders" data-on={!past}>New</Link>
-        <Link href="/vendor/orders?tab=past" data-on={past}>Past</Link>
+        {[
+          ["pending", "Pending"],
+          ["active", "Active"],
+          ["completed", "Completed"],
+          ["cancelled", "Cancelled"],
+        ].map(([key, label]) => (
+          <Link key={key} href={key === "pending" ? "/vendor/orders" : `/vendor/orders?tab=${key}`} data-on={tab === key}>{label}</Link>
+        ))}
       </div>
       <div className="mt-3 space-y-2 px-4 pb-6">
         {orders.map((order) => (

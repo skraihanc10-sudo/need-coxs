@@ -1,218 +1,150 @@
 import Link from "next/link"
+import { Clock, Mail, MapPin, Phone, Shirt, Truck } from "lucide-react"
 import { db } from "@/lib/db"
 import { getLocale } from "@/lib/auth"
-import { LaundryScene } from "@/components/site/scene"
+import { getSettings } from "@/lib/settings"
+import { HeroSlider, QuoteSlider } from "@/components/site/home-client"
+import { Partners } from "@/components/site/chrome"
+import { posts, services, steps } from "@/content/public"
 import { brand } from "@/theme/brand"
-import { taka } from "@/lib/format"
 
-const features = [
-  ["Pickup at the gate", "A rider collects the bag from your building. No shop queue."],
-  ["Price before you book", "Wash, iron, or dry-clean is priced per cloth, in taka."],
-  ["Back in two days", "Choose the return slot. Most shops finish inside 48 hours."],
-  ["Cash on delivery", "Pay the rider when the clothes come home. Online gateways can be added later."],
-]
-
-const services = [
-  ["Wash & fold", "Everyday wear, washed, dried, and folded by the kilo.", "/c/wash"],
-  ["Wash & iron", "Office shirts and panjabis returned on a hanger.", "/c/both"],
-  ["Dry clean", "Sarees, suits, and anything that should not see a machine.", "/c/dry"],
-  ["Iron only", "You washed it. The laundry presses it.", "/c/iron"],
-  ["Household", "Sheets, towels, and curtains under Other in the shop.", "/app"],
-  ["Neighbourhood shops", "Compare Gulshan, Dhanmondi, Banani, Mirpur, and more.", "/stores"],
-]
-
-const steps = [
-  ["01", "Pick a laundry", "Browse shops near you and open the cloth list."],
-  ["02", "Choose the service", "Each item has its own wash, iron, or dry-clean price."],
-  ["03", "Set both slots", "Pickup and delivery are separate dates and times."],
-  ["04", "We bring them back", "The rider collects, the shop cleans, the same rider returns them."],
-]
-
-export default async function MarketingHome() {
+export default async function HomePage() {
   const locale = await getLocale()
-  const [stores, orders, reviews, faqs, kinds] = await Promise.all([
-    db.store.count({ where: { status: "APPROVED" } }),
-    db.order.count(),
-    db.review.findMany({ include: { customer: true, store: true }, orderBy: { createdAt: "desc" }, take: 3 }),
-    db.faq.findMany({ where: { storeId: null }, orderBy: { sort: "asc" }, take: 4 }),
-    db.kind.findMany({ orderBy: { sort: "asc" } }),
-  ])
-  const priceRows = await db.price.findMany({
-    where: { active: true, store: { status: "APPROVED" } },
-    include: { kind: true, item: true },
-  })
-  const fromKind = (slug: string) => {
-    const rows = priceRows.filter((row) => row.kind.slug === slug)
-    if (!rows.length) return null
-    return Math.min(...rows.map((row) => row.amount))
-  }
+  const bn = locale === "bn"
+  const settings = await getSettings()
+  const reviews = await db.review.findMany({ include: { customer: true, store: true }, take: 4 })
+  const quotes = reviews.length
+    ? reviews.map((review) => ({
+        name: review.customer.name,
+        text: review.comment,
+        meta: `${review.store.name} · ${review.rating} star review`,
+      }))
+    : [{ name: "Nusrat Rahman", text: "The rider called from the gate and the collars came back sharp.", meta: "Chandni Wash House" }]
 
   return (
     <div>
-      <section className="site-hero">
-        <div className="site-wrap grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
-          <div>
-            <p className="site-kicker">Doorstep laundry · {brand.city}</p>
-            <h1 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
-              {locale === "bn" ? "কাপড় ফিরে আসে ভাঁজ করা, সময়মতো।" : "Clothes come back folded, and on time."}
-            </h1>
-            <p className="mt-4 max-w-xl text-lg text-white/80">
-              {brand.name} is the booking desk for neighbourhood wash houses. Compare a shop, price each cloth, and pay the rider in cash.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/app" className="inline-flex h-12 items-center rounded-full bg-[var(--accent)] px-6 font-extrabold text-[#06283a]">Book a pickup</Link>
-              <Link href="/services" className="inline-flex h-12 items-center rounded-full border border-white/40 px-6 font-extrabold">Our services</Link>
-            </div>
-          </div>
-          <LaundryScene />
+      <HeroSlider bn={bn} />
+      <section className="border-b bg-white">
+        <div className="site-wrap grid gap-4 py-5 text-sm md:grid-cols-3">
+          <p className="flex items-center gap-3"><MapPin className="text-[var(--pub-green)]" /> {brand.address}</p>
+          <p className="flex items-center gap-3"><Mail className="text-[var(--pub-green)]" /> {settings.supportEmail}</p>
+          <p className="flex items-center gap-3"><Clock className="text-[var(--pub-green)]" /> Open 8:00–21:00, every day</p>
         </div>
       </section>
 
-      <section className="site-wrap relative z-10 -mt-10 grid gap-4 md:grid-cols-4">
-        {features.map(([title, body]) => (
-          <article key={title} className="surface-card p-5">
-            <span className="icon-chip text-sm font-extrabold">{title.slice(0, 1)}</span>
-            <h2 className="mt-3 font-extrabold">{title}</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">{body}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="site-wrap grid items-center gap-10 py-20 md:grid-cols-2">
-        <div className="rounded-[28px] bg-[var(--brand-soft)] p-8">
-          <p className="text-6xl font-extrabold text-[var(--brand)]">{stores}</p>
-          <p className="font-bold">approved laundries on the desk</p>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            We are not one giant plant. Each order goes to a shop you can name, with its own prices, slots, and rider.
-          </p>
-        </div>
-        <div>
-          <p className="site-kicker">About the desk</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">A booking desk for Dhaka laundries, not a single shop.</h2>
-          <ul className="mt-5 space-y-3 text-sm">
-            {["See the rate before the bag is collected.", "Separate pickup and delivery times.", "Track every status from placed to completed.", "Switch the customer app into Bangla."].map((item) => (
-              <li key={item} className="flex gap-2"><span className="font-extrabold text-[var(--accent-ink)]">✓</span>{item}</li>
-            ))}
-          </ul>
-          <Link href="/about" className="mt-6 inline-flex h-12 items-center rounded-full bg-primary px-6 font-extrabold text-primary-foreground">About {brand.name}</Link>
-        </div>
-      </section>
-
-      <section className="bg-[var(--brand-softer)] py-16">
-        <div className="site-wrap">
-          <p className="site-kicker">What we book</p>
-          <h2 className="mt-2 text-3xl font-extrabold">Services the shops actually run</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {services.map(([title, body, href]) => (
-              <Link key={title} href={href} className="surface-card block p-5 transition hover:-translate-y-0.5">
-                <h3 className="text-lg font-extrabold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-                <p className="mt-3 text-sm font-bold text-[var(--brand)]">Open the list</p>
+      <section className="site-wrap py-16 text-center">
+        <p className="text-sm font-bold text-[var(--pub-green)]">● {bn ? "আমাদের সেবা" : "What we book"}</p>
+        <h2 className="mt-2 text-5xl">{bn ? "আমাদের সেবা" : "Our services"}</h2>
+        <div className="mt-10 grid gap-6 text-left md:grid-cols-4">
+          {services.map((service) => (
+            <article key={service.slug} className="reveal overflow-hidden bg-[#f6f8f8] shadow-sm">
+              <img src={service.image} alt="" className="h-40 w-full object-cover" />
+              <div className="p-4">
+                <h3 className="text-xl">{bn ? service.titleBn : service.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--pub-muted)]">{service.blurb}</p>
+                <Link href={`/services/${service.slug}`} className="pub-btn mt-4 w-full">{service.price}</Link>
+              </div>
+              <Link href={`/services/${service.slug}`} className="flex items-center justify-between bg-[#eceff1] px-4 py-3 text-xs font-bold tracking-wide">
+                {service.discount} <span>→</span>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="site-wrap py-16">
-        <p className="site-kicker">Pricing, from real menus</p>
-        <h2 className="mt-2 text-3xl font-extrabold">Starting rates across approved shops</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          {kinds.map((kind) => {
-            const amount = fromKind(kind.slug)
-            return (
-              <article key={kind.id} className="rounded-[24px] border p-5">
-                <p className="text-sm font-bold text-[var(--accent-ink)]">{locale === "bn" ? kind.nameBn : kind.name}</p>
-                <p className="mt-3 text-3xl font-extrabold">{amount == null ? "—" : taka(amount, locale)}</p>
-                <p className="text-sm text-muted-foreground">lowest live price</p>
-                <Link href={`/c/${kind.slug}`} className="mt-4 inline-block text-sm font-bold text-[var(--brand)]">See shops</Link>
-              </article>
-            )
-          })}
-        </div>
-        <Link href="/pricing" className="mt-6 inline-flex h-12 items-center rounded-full border px-6 font-extrabold">Full pricing</Link>
-      </section>
-
-      <section className="bg-[var(--brand-ink)] py-16 text-white">
-        <div className="site-wrap">
-          <p className="site-kicker">How a bag moves</p>
-          <h2 className="mt-2 text-3xl font-extrabold">Four steps, then the clothes are home</h2>
-          <ol className="mt-8 grid gap-4 md:grid-cols-4">
-            {steps.map(([n, title, body]) => (
-              <li key={n} className="rounded-3xl bg-white/5 p-5">
-                <p className="text-3xl font-extrabold text-[var(--accent)]">{n}</p>
-                <h3 className="mt-2 font-extrabold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-white/70">{body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="site-wrap grid gap-6 py-10 text-center sm:grid-cols-3">
-        {[[String(stores), "Laundries"], [String(orders), "Orders on the desk"], ["5", "Neighbourhoods"]].map(([n, label]) => (
-          <div key={label}>
-            <p className="text-4xl font-extrabold text-[var(--brand)]">{n}</p>
-            <p className="text-sm text-muted-foreground">{label}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="site-wrap pb-16">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="site-kicker">Stories</p>
-            <h2 className="mt-2 text-3xl font-extrabold">What customers wrote after delivery</h2>
-          </div>
-          <Link href="/testimonials" className="text-sm font-bold text-[var(--brand)]">All stories</Link>
-        </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {(reviews.length ? reviews.map((review) => ({
-            name: review.customer.name,
-            quote: review.comment,
-            meta: `${review.store.name} · ${"★".repeat(review.rating)}`,
-          })) : [{
-            name: "Nusrat Rahman",
-            quote: "Collars came back sharp and the rider called from the gate.",
-            meta: "Chandni Wash House · ★★★★★",
-          }]).map((story) => (
-            <blockquote key={story.quote} className="surface-card p-5">
-              <p className="text-sm leading-6">“{story.quote}”</p>
-              <footer className="mt-4 text-sm font-bold">{story.name}</footer>
-              <p className="text-xs text-muted-foreground">{story.meta}</p>
-            </blockquote>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="bg-[var(--brand-softer)] py-16">
-        <div className="site-wrap grid gap-8 md:grid-cols-2">
-          <div>
-            <p className="site-kicker">Questions</p>
-            <h2 className="mt-2 text-3xl font-extrabold">Before you hand over the bag</h2>
-            <Link href="/faq" className="mt-4 inline-block font-bold text-[var(--brand)]">Read every answer</Link>
-          </div>
-          <div className="space-y-3">
-            {faqs.map((faq) => (
-              <details key={faq.id} className="rounded-2xl bg-white px-4 py-3">
-                <summary className="cursor-pointer font-bold">{faq.question}</summary>
-                <p className="pt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
-              </details>
+      <section className="bg-white py-16">
+        <div className="site-wrap text-center">
+          <p className="text-sm font-bold text-[var(--pub-green)]">● {bn ? "ধাপ" : "Simple process"}</p>
+          <h2 className="mt-2 text-5xl">{bn ? "যেভাবে কাজ হয়" : "How we work"}</h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-4">
+            {steps.map((step) => (
+              <article key={step.n} className="reveal px-4">
+                <div className="mx-auto grid size-16 place-items-center rounded-full bg-[#e9f8ef] text-[var(--pub-green)]">
+                  {step.n === "04" ? <Truck /> : step.n === "03" ? <Shirt /> : <Phone />}
+                </div>
+                <h3 className="mt-4 text-2xl">{step.title}</h3>
+                <p className="mt-2 text-sm text-[var(--pub-muted)]">{step.text}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="site-wrap py-16">
-        <div className="rounded-[32px] bg-primary px-8 py-10 text-primary-foreground md:flex md:items-center md:justify-between">
+      <section className="bg-[var(--pub-yellow)]">
+        <div className="site-wrap grid gap-4 py-5 text-sm font-semibold md:grid-cols-3">
+          <p className="flex items-center gap-2"><Phone className="size-4" /> {settings.supportPhone}</p>
+          <p className="flex items-center gap-2"><Mail className="size-4" /> {settings.supportEmail}</p>
+          <p className="flex items-center gap-2"><MapPin className="size-4" /> {brand.city}, Bangladesh</p>
+        </div>
+      </section>
+
+      <section className="site-wrap grid items-center gap-10 py-16 md:grid-cols-2">
+        <div className="relative">
+          <img src="/marketing/svc-rail.jpg" alt="Pressed clothes on a rail" className="h-[420px] w-full object-cover" />
+          <div className="absolute bottom-6 left-6 grid size-28 place-items-center bg-[var(--pub-green)] text-center text-white">
+            <span className="text-4xl leading-none">8+</span>
+            <span className="text-sm">Years</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-[var(--pub-green)]">Since 2016</p>
+          <h2 className="mt-2 text-4xl md:text-5xl">On-time delivery and a shop you can name.</h2>
+          <p className="mt-4 text-sm leading-7 text-[var(--pub-muted)]">
+            {brand.name} does not wash the clothes itself. Neighbourhood laundries do. We book the pickup, show the price, and send a rider.
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {[
+              ["Gate pickup", "The rider meets the guard, not a queue."],
+              ["Piece or kilo", "Formal clothes stay on their own line."],
+              ["Cash on return", "Pay when the bag comes home."],
+              ["Bangla or English", "The customer app switches language."],
+            ].map(([title, text]) => (
+              <div key={title}>
+                <h3 className="text-lg normal-case">{title}</h3>
+                <p className="text-sm text-[var(--pub-muted)]">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <Partners />
+
+      <section className="overflow-hidden text-white" style={{ background: "var(--pub-navy)" }}>
+        <div className="site-wrap grid items-center gap-8 py-14 md:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-extrabold">Need a rider at the gate?</h2>
-            <p className="mt-2 text-white/80">Book in the app, or call the desk and we will point you at a shop.</p>
+            <h2 className="text-5xl">Home delivery, the neighbourhood laundry.</h2>
+            <p className="mt-4 max-w-md text-sm leading-7 text-white/70">Compare shops in Gulshan, Dhanmondi, Banani, Mirpur, and Mohammadpur. The rider brings the bag back.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/app" className="pub-btn">Book now →</Link>
+              <Link href="/contact" className="pub-btn ghost">Request a quote</Link>
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3 md:mt-0">
-            <Link href="/app" className="inline-flex h-12 items-center rounded-full bg-[var(--accent)] px-6 font-extrabold text-[#06283a]">Book a pickup</Link>
-            <Link href="/contact" className="inline-flex h-12 items-center rounded-full border border-white/40 px-6 font-extrabold">Contact</Link>
-          </div>
+          <img src="/marketing/rider-box.jpg" alt="Need Cox's rider with a parcel" className="mx-auto h-[380px] w-full max-w-sm object-cover object-top" />
+        </div>
+      </section>
+
+      <section className="site-wrap py-16">
+        <p className="text-center text-sm font-bold text-[var(--pub-green)]">● What clients say</p>
+        <h2 className="mt-2 text-center text-5xl">Our testimonials</h2>
+        <div className="mt-8">
+          <QuoteSlider quotes={quotes} />
+        </div>
+      </section>
+
+      <section className="site-wrap pb-16">
+        <p className="text-center text-sm font-bold text-[var(--pub-green)]">● Our blog</p>
+        <h2 className="mt-2 text-center text-5xl">News and articles</h2>
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
+          {posts.map((post) => (
+            <article key={post.slug} className="reveal bg-white shadow-sm">
+              <img src={post.image} alt="" className="h-48 w-full object-cover" />
+              <div className="p-4">
+                <p className="text-xs font-bold text-[var(--pub-green)]">{post.date}</p>
+                <h3 className="mt-2 text-2xl normal-case"><Link href={`/blog/${post.slug}`}>{post.title}</Link></h3>
+                <p className="mt-2 text-sm text-[var(--pub-muted)]">{post.excerpt}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
     </div>

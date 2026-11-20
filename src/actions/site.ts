@@ -5,6 +5,18 @@ import { db } from "@/lib/db"
 import { notify } from "@/lib/notify"
 import { brand } from "@/theme/brand"
 
+export async function subscribe(formData: FormData) {
+  const email = String(formData.get("email") || "").trim().toLowerCase()
+  const back = String(formData.get("back") || "/")
+  if (!email.includes("@")) redirect(`${back}?error=email`)
+  await db.subscriber.upsert({
+    where: { email },
+    update: {},
+    create: { email },
+  })
+  redirect(`${back}?subscribed=1`)
+}
+
 export async function sendInquiry(formData: FormData) {
   const name = String(formData.get("name") || "").trim()
   const email = String(formData.get("email") || "").trim()

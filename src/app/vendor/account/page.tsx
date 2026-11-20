@@ -3,6 +3,9 @@ import { requireUser } from "@/lib/auth"
 import { logout } from "@/actions/auth"
 
 const LINKS = [
+  ["/vendor/categories", "Categories"],
+  ["/vendor/attributes", "Attributes"],
+  ["/vendor/gallery", "Gallery"],
   ["/vendor/slots", "Time slots"],
   ["/vendor/coupons", "Coupons"],
   ["/vendor/riders", "Riders"],

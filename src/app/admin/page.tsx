@@ -51,8 +51,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       <div className="surface-card mt-4 p-4">
         <div className="flex h-40 items-end gap-2">
           {counts.map((item) => (
-            <div key={item.bucket} className="flex flex-1 flex-col items-center gap-1">
-              <div className="bar" style={{ height: `${Math.max(8, (item.value / max) * 100)}%` }} />
+            <div key={item.bucket} className="flex h-36 flex-1 flex-col items-center justify-end gap-1">
+              <div className="bar w-full" style={{ height: `${Math.max(10, (item.value / max) * 100)}%` }} />
               <span className="text-[10px] text-muted-foreground">{item.bucket.slice(-5)}</span>
             </div>
           ))}

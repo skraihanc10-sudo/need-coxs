@@ -1,33 +1,21 @@
 import Link from "next/link"
 import { PageBanner } from "@/components/site/chrome"
-
-const steps = [
-  ["Schedule in the app", "Open a laundry, switch Men, Women, Kids, or Other, and tap a cloth. A sheet asks wash only, iron only, wash & iron, or dry clean, each with its own price."],
-  ["Review the bag", "Apply a promo code on the review step. WELCOME100 takes ৳100 off bags over ৳500."],
-  ["Two time tabs", "Pickup and delivery are separate. Pick a date chip and a slot the shop still has room for."],
-  ["Pay on return", "Cash on delivery is collected by the rider. bKash, SSLCommerz, and card stay on the payment step until their keys are set."],
-  ["The shop accepts", "The laundry can accept, reject, or assign a rider. You see the status change on the order."],
-  ["Rider closes it", "Mark picked up, then later mark delivered. The admin desk records commission when it is completed."],
-]
+import { steps } from "@/content/public"
 
 export default function HowPage() {
   return (
     <div>
-      <PageBanner title="How it works" crumb="How it works" />
-      <ol className="site-wrap space-y-4 py-14">
-        {steps.map(([title, body], index) => (
-          <li key={title} className="grid gap-4 rounded-[28px] border p-6 md:grid-cols-[80px_1fr]">
-            <p className="text-3xl font-extrabold text-[var(--brand)]">{String(index + 1).padStart(2, "0")}</p>
-            <div>
-              <h2 className="text-xl font-extrabold">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-            </div>
+      <PageBanner title="How we work" crumbs={["How it works"]} />
+      <ol className="site-wrap grid gap-6 py-14 md:grid-cols-4">
+        {steps.map((step) => (
+          <li key={step.n} className="bg-[#f6f8f8] p-6 text-center">
+            <p className="text-4xl text-[var(--pub-green)]">{step.n}</p>
+            <h2 className="mt-2 text-2xl">{step.title}</h2>
+            <p className="mt-2 text-sm text-[var(--pub-muted)]">{step.text}</p>
           </li>
         ))}
       </ol>
-      <div className="site-wrap pb-16">
-        <Link href="/app" className="inline-flex h-12 items-center rounded-full bg-primary px-6 font-extrabold text-primary-foreground">Start a booking</Link>
-      </div>
+      <div className="site-wrap pb-14"><Link href="/app" className="pub-btn">Book now</Link></div>
     </div>
   )
 }

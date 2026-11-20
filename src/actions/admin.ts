@@ -219,6 +219,68 @@ export async function saveNotifySettings(formData: FormData) {
   redirect("/admin/notifications?ok=1")
 }
 
+export async function saveZone(formData: FormData) {
+  await admin()
+  await db.deliveryZone.create({
+    data: {
+      name: String(formData.get("name") || ""),
+      area: String(formData.get("area") || ""),
+      fee: Math.round(Number(formData.get("fee") || 0)),
+    },
+  })
+  redirect("/admin/zones")
+}
+
+export async function toggleZone(formData: FormData) {
+  await admin()
+  const id = String(formData.get("id") || "")
+  const zone = await db.deliveryZone.findUnique({ where: { id } })
+  if (zone) await db.deliveryZone.update({ where: { id }, data: { active: !zone.active } })
+  redirect("/admin/zones")
+}
+
+export async function savePage(formData: FormData) {
+  await admin()
+  const slug = String(formData.get("slug") || "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-")
+  await db.cmsPage.upsert({
+    where: { slug },
+    update: { title: String(formData.get("title") || ""), body: String(formData.get("body") || "") },
+    create: { slug, title: String(formData.get("title") || ""), body: String(formData.get("body") || "") },
+  })
+  redirect("/admin/pages")
+}
+
+export async function deletePage(formData: FormData) {
+  await admin()
+  await db.cmsPage.delete({ where: { id: String(formData.get("id") || "") } })
+  redirect("/admin/pages")
+}
+
+export async function saveGateway(formData: FormData) {
+  await admin()
+  const key = String(formData.get("key") || "")
+  if (!["payCod", "payBkash", "paySsl", "payStripe"].includes(key)) redirect("/admin/gateways")
+  const { saveSettings } = await import("@/lib/settings")
+  await saveSettings({ [key]: formData.get("enabled") === "on" ? "1" : "0" })
+  redirect("/admin/gateways?ok=1")
+}
+
+export async function saveAdminProfile(formData: FormData) {
+  const user = await admin()
+  const name = String(formData.get("name") || "").trim()
+  const password = String(formData.get("password") || "")
+  if (name.length < 2) redirect("/admin/profile?error=Add%20your%20name.")
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      name,
+      phone: String(formData.get("phone") || ""),
+      ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
+    },
+  })
+  redirect("/admin/profile?ok=1")
+}
+
 export async function adminReply(formData: FormData) {
   const user = await admin()
   const threadId = String(formData.get("threadId") || "")

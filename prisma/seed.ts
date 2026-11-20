@@ -13,6 +13,12 @@ function day(offset: number) {
 }
 
 async function main() {
+  await db.subscriber.deleteMany()
+  await db.deliveryZone.deleteMany()
+  await db.cmsPage.deleteMany()
+  await db.galleryItem.deleteMany()
+  await db.storeCategory.deleteMany()
+  await db.productAttribute.deleteMany()
   await db.inquiry.deleteMany()
   await db.message.deleteMany()
   await db.thread.deleteMany()
@@ -369,6 +375,36 @@ async function main() {
     data: [
       { threadId: thread.id, senderId: nusrat.id, body: "Hi, can the rider call before collecting from the gate?" },
       { threadId: thread.id, senderId: admin.id, body: "Yes. Karim will ring when he is five minutes away." },
+    ],
+  })
+
+  await db.deliveryZone.createMany({
+    data: [
+      { name: "Gulshan–Banani", area: "Gulshan", fee: 60 },
+      { name: "Dhanmondi belt", area: "Dhanmondi", fee: 70 },
+      { name: "Mirpur", area: "Mirpur", fee: 80 },
+      { name: "Uttara", area: "Uttara", fee: 90 },
+    ],
+  })
+  await db.cmsPage.createMany({
+    data: [
+      { slug: "privacy", title: "Privacy", body: "Need Cox's stores passwords as hashes and uses addresses only for pickup and delivery." },
+      { slug: "care", title: "Garment care", body: "Silk and suits should be booked as dry clean, not wash and fold." },
+    ],
+  })
+  await db.galleryItem.create({
+    data: { storeId: chandni.id, caption: "Press floor", image: "/marketing/news-press.jpg" },
+  })
+  await db.storeCategory.createMany({
+    data: [
+      { storeId: chandni.id, name: "Formal" },
+      { storeId: chandni.id, name: "Everyday" },
+    ],
+  })
+  await db.productAttribute.createMany({
+    data: [
+      { storeId: chandni.id, name: "Finish", value: "Hanger" },
+      { storeId: chandni.id, name: "Scent", value: "Fragrance-free" },
     ],
   })
 

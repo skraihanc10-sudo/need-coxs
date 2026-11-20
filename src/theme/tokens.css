@@ -258,10 +258,57 @@
   color: white;
 }
 
-.site-kicker {
-  color: var(--accent);
-  font-weight: 800;
-  letter-spacing: 0.14em;
+/* Public marketing site. App panels do not use these variables. */
+.public-site {
+  --pub-green: #00b45a;
+  --pub-green-dark: #00924a;
+  --pub-yellow: #f6c445;
+  --pub-navy: #1f3a47;
+  --pub-ink: #16313c;
+  --pub-muted: #6b7c86;
+  --pub-line: #e6ecee;
+  --pub-card: #f4f7f8;
+  background: #fff;
+  color: var(--pub-ink);
+  font-family: var(--font-open), var(--font-bengali), sans-serif;
+}
+
+.public-site h1,
+.public-site h2,
+.public-site h3,
+.public-site .display {
+  font-family: var(--font-display), var(--font-bengali), sans-serif;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  animation: rise 0.7s ease forwards;
+}
+.reveal-late { animation-delay: 0.15s; }
+@keyframes rise {
+  to { opacity: 1; transform: none; }
+}
+
+.pub-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 48px;
+  padding: 0 1.4rem;
+  background: var(--pub-green);
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+.pub-btn:hover { background: var(--pub-green-dark); }
+.pub-btn.ghost {
+  background: transparent;
+  border: 2px solid white;
 }

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { ClipboardList, Clock3, Wallet, BadgeDollarSign } from "lucide-react"
 import { requireUser } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeBalance } from "@/lib/orders"
@@ -12,21 +13,24 @@ export default async function VendorHome() {
     db.order.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 6, include: { customer: true } }),
     storeBalance(store.id),
   ])
-  const pending = orders.filter((order) => order.status === "PENDING").length
+  const [pending, totalOrders] = await Promise.all([
+    db.order.count({ where: { storeId: store.id, status: "PENDING" } }),
+    db.order.count({ where: { storeId: store.id } }),
+  ])
   const tiles = [
-    ["Orders", String(await db.order.count({ where: { storeId: store.id } }))],
-    ["Waiting", String(pending)],
-    ["Earned", taka(balance.net)],
-    ["Available", taka(balance.available)],
-  ]
+    ["Orders", String(totalOrders), ClipboardList],
+    ["Waiting", String(pending), Clock3],
+    ["Earned", taka(balance.net), BadgeDollarSign],
+    ["Available", taka(balance.available), Wallet],
+  ] as const
   return (
     <div className="px-4 py-5">
       <p className="text-sm text-muted-foreground">Hello</p>
       <h1 className="text-2xl font-extrabold">{store.name}</h1>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        {tiles.map(([label, value]) => (
+        {tiles.map(([label, value, Icon]) => (
           <div key={label} className="surface-card p-3">
-            <span className="icon-chip text-xs font-extrabold">{label.slice(0, 1)}</span>
+            <span className="icon-chip"><Icon className="size-5" /></span>
             <p className="mt-2 text-xs text-muted-foreground">{label}</p>
             <p className="text-xl font-extrabold">{value}</p>
           </div>

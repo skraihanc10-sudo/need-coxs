@@ -49,7 +49,9 @@ export default async function StorePage({
   return (
     <div className="pb-24">
       <PageHeader title={store.name} back="/" />
-      <div className="mx-4 h-28 rounded-3xl" style={{ background: `linear-gradient(135deg, hsl(${store.hue} 62% 40%), hsl(${store.hue + 18} 75% 58%))` }} />
+      <div className="relative mx-4 h-40 overflow-hidden rounded-3xl">
+        {store.cover ? <img src={store.cover} alt="" className="h-full w-full object-cover" /> : null}
+      </div>
       <div className="px-4 pt-3">
         <p className="text-sm text-muted-foreground">{store.area} · ★ {store.rating.toFixed(1)} ({store.reviewCount}) · {isOpen(store.openTime, store.closeTime) ? t.open : t.closed}</p>
         <p className="mt-1 text-sm">{store.tagline}</p>

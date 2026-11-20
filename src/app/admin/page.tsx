@@ -49,13 +49,22 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         <Link href={`/admin?view=${view}&range=year`} data-on={range === "year"}>Yearly</Link>
       </div>
       <div className="surface-card mt-4 p-4">
-        <div className="flex h-40 items-end gap-2">
-          {counts.map((item) => (
-            <div key={item.bucket} className="flex h-36 flex-1 flex-col items-center justify-end gap-1">
-              <div className="bar w-full" style={{ height: `${Math.max(10, (item.value / max) * 100)}%` }} />
-              <span className="text-[10px] text-muted-foreground">{item.bucket.slice(-5)}</span>
-            </div>
-          ))}
+        <div className="flex h-44 items-end gap-2">
+          {counts.map((item) => {
+            const px = Math.round((item.value / max) * 140)
+            return (
+              <div key={item.bucket} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                <div
+                  className="w-8 max-w-full rounded-t-md"
+                  style={{
+                    height: item.value ? Math.max(px, 10) : 0,
+                    background: "linear-gradient(180deg, var(--accent), var(--brand))",
+                  }}
+                />
+                <span className="text-[10px] text-muted-foreground">{item.bucket.slice(-5)}</span>
+              </div>
+            )
+          })}
         </div>
         <p className="mt-3 text-sm">Gross bookings {taka(gmv)} · {pendingStores} laundries waiting for approval</p>
       </div>

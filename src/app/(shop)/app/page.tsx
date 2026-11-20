@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { copy } from "@/lib/i18n"
 import { getViewer } from "@/lib/queries"
 import { isOpen, km, taka } from "@/lib/format"
+import { KindIcon, StoreLogo } from "@/components/laundry-icons"
 
 export default async function AppHome({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const viewer = await getViewer()
@@ -67,7 +68,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <div className="mt-5 flex gap-3 overflow-x-auto px-4">
         {kinds.map((kind) => (
           <Link key={kind.id} href={`/c/${kind.slug}`} className="flex w-16 shrink-0 flex-col items-center gap-1 text-center text-[11px] font-semibold">
-            <span className="icon-chip">{kind.name.slice(0, 1)}</span>
+            <span className="icon-chip"><KindIcon slug={kind.slug} /></span>
             {viewer.locale === "bn" ? kind.nameBn : kind.name}
           </Link>
         ))}
@@ -89,8 +90,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <div className="mt-3 space-y-3 px-4">
         {list.map((store) => (
           <Link key={store.id} href={`/stores/${store.slug}`} className="surface-card block overflow-hidden">
-            <div className="h-24" style={{ background: `linear-gradient(135deg, hsl(${store.hue} 62% 42%), hsl(${store.hue + 24} 80% 58%))` }} />
-            <div className="p-3">
+            <div className="relative h-32">
+              {store.cover ? <img src={store.cover} alt="" className="h-full w-full object-cover" /> : <div className="h-full" style={{ background: `linear-gradient(135deg, hsl(${store.hue} 62% 42%), hsl(${store.hue + 24} 80% 58%))` }} />}
+              <span className="absolute -bottom-4 left-3"><StoreLogo mark={store.logo || "both"} /></span>
+            </div>
+            <div className="p-3 pt-6">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-extrabold">{store.name}</h3>
                 <span className="text-sm font-bold">★ {store.rating.toFixed(1)}</span>

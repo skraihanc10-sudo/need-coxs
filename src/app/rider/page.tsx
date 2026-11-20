@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Bike, Wallet } from "lucide-react"
 import { requireUser } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { StatusPill } from "@/components/bits"
@@ -24,8 +25,8 @@ export default async function RiderHome({ searchParams }: { searchParams: Promis
       <h1 className="text-2xl font-extrabold">Pickup & deliveries</h1>
       <p className="text-sm text-muted-foreground">{user.name} · {user.rider!.zone}</p>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="surface-card p-3"><p className="text-xs">Assigned</p><p className="text-2xl font-extrabold">{done ? "—" : orders.length}</p></div>
-        <div className="surface-card p-3"><p className="text-xs">Earned</p><p className="text-2xl font-extrabold">{taka(completed * Number(settings.riderFee))}</p></div>
+        <div className="surface-card p-3"><span className="icon-chip"><Bike className="size-5" /></span><p className="mt-2 text-xs">Assigned</p><p className="text-2xl font-extrabold">{done ? "—" : orders.length}</p></div>
+        <div className="surface-card p-3"><span className="icon-chip"><Wallet className="size-5" /></span><p className="mt-2 text-xs">Earned</p><p className="text-2xl font-extrabold">{taka(completed * Number(settings.riderFee))}</p></div>
       </div>
       <div className="seg mt-4">
         <Link href="/rider" data-on={!done}>Assigned</Link>

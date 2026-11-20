@@ -12,9 +12,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next = "" } = await searchParams
   const t = copy(await getLocale())
   return (
-    <div className="px-5 py-10">
-      <Logo />
-      <h1 className="mt-6 text-2xl font-extrabold">{t.loginTitle}</h1>
+    <div className="px-5 py-8">
+      <div className="overflow-hidden rounded-3xl">
+        <img src="/marketing/hero-laundry.jpg" alt="" className="h-40 w-full object-cover" />
+      </div>
+      <div className="mt-5"><Logo /></div>
+      <h1 className="mt-4 text-2xl font-extrabold">{t.loginTitle}</h1>
       <p className="mt-1 text-sm text-muted-foreground">Demo accounts fill the form. Passwords are on the cards.</p>
       <div className="mt-6">
         <LoginForm next={next} title={t.email} />

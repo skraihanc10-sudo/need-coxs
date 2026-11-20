@@ -1,9 +1,7 @@
 import { Logo } from "@/components/logo"
-import { OnboardArt } from "@/components/art"
 import { finishIntro } from "@/actions/auth"
 import { getLocale } from "@/lib/auth"
 import { copy } from "@/lib/i18n"
-import { brand } from "@/theme/brand"
 
 export default async function Onboarding({ searchParams }: { searchParams: Promise<{ s?: string }> }) {
   const { s = "0" } = await searchParams
@@ -19,9 +17,12 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
   return (
     <div className="flex min-h-dvh flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
-        {step === 0 ? <Logo /> : null}
-        <OnboardArt n={step} />
-        {step === 0 ? <p className="text-sm text-muted-foreground">{brand.name}</p> : null}
+        <Logo />
+        <img
+          src={["/marketing/hero-laundry.jpg", "/marketing/svc-fold.jpg", "/marketing/rider-box.jpg"][step]}
+          alt=""
+          className="mt-4 h-56 w-full rounded-3xl object-cover"
+        />
       </div>
       <div className="rounded-t-[28px] bg-primary px-6 pt-7 pb-8 text-primary-foreground">
         <h1 className="text-2xl font-extrabold">{title}</h1>

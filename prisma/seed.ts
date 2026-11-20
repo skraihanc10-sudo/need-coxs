@@ -120,12 +120,12 @@ async function main() {
   )
 
   const storeInput = [
-    { ownerId: farhan.id, name: "Chandni Wash House", slug: "chandni-wash-house", area: "Gulshan", address: "House 48, Road 11, Gulshan 2", lat: 23.7948, lng: 90.4143, phone: "01711000001", hue: 210, status: "APPROVED", factor: 1.1, tagline: "Steam press and wash-fold since 2016." },
-    { ownerId: owners[0].id, name: "Dhanmondi Press Room", slug: "dhanmondi-press-room", area: "Dhanmondi", address: "Road 27, Dhanmondi", lat: 23.755, lng: 90.376, phone: "01712000002", hue: 198, status: "APPROVED", factor: 1, tagline: "Neighbourhood press with same-day slots." },
-    { ownerId: owners[1].id, name: "Banani Apron", slug: "banani-apron", area: "Banani", address: "Road 11, Banani", lat: 23.793, lng: 90.407, phone: "01713000003", hue: 188, status: "APPROVED", factor: 1.05, tagline: "Careful with silk and office shirts." },
-    { ownerId: owners[2].id, name: "Mirpur Soak Studio", slug: "mirpur-soak-studio", area: "Mirpur", address: "Mirpur 10", lat: 23.807, lng: 90.368, phone: "01714000004", hue: 222, status: "APPROVED", factor: 0.9, tagline: "Lower rates, evening pickups." },
-    { ownerId: owners[3].id, name: "Mohammadpur Linen", slug: "mohammadpur-linen", area: "Mohammadpur", address: "Tajmahal Road", lat: 23.766, lng: 90.358, phone: "01715000005", hue: 204, status: "APPROVED", factor: 0.95, tagline: "Household linen and everyday wear." },
-    { ownerId: owners[4].id, name: "Uttara Fold Lane", slug: "uttara-fold-lane", area: "Uttara", address: "Sector 7", lat: 23.876, lng: 90.398, phone: "01716000006", hue: 250, status: "PENDING", factor: 1, tagline: "Waiting for approval." },
+    { ownerId: farhan.id, name: "Chandni Wash House", slug: "chandni-wash-house", area: "Gulshan", address: "House 48, Road 11, Gulshan 2", lat: 23.7948, lng: 90.4143, phone: "01711000001", hue: 210, status: "APPROVED", factor: 1.1, tagline: "Steam press and wash-fold since 2016.", cover: "/laundries/cover-chandni.jpg", logo: "shirt" },
+    { ownerId: owners[0].id, name: "Dhanmondi Press Room", slug: "dhanmondi-press-room", area: "Dhanmondi", address: "Road 27, Dhanmondi", lat: 23.755, lng: 90.376, phone: "01712000002", hue: 198, status: "APPROVED", factor: 1, tagline: "Neighbourhood press with same-day slots.", cover: "/laundries/cover-dhanmondi.jpg", logo: "iron" },
+    { ownerId: owners[1].id, name: "Banani Apron", slug: "banani-apron", area: "Banani", address: "Road 11, Banani", lat: 23.793, lng: 90.407, phone: "01713000003", hue: 188, status: "APPROVED", factor: 1.05, tagline: "Careful with silk and office shirts.", cover: "/laundries/cover-banani.jpg", logo: "hanger" },
+    { ownerId: owners[2].id, name: "Mirpur Soak Studio", slug: "mirpur-soak-studio", area: "Mirpur", address: "Mirpur 10", lat: 23.807, lng: 90.368, phone: "01714000004", hue: 222, status: "APPROVED", factor: 0.9, tagline: "Lower rates, evening pickups.", cover: "/laundries/cover-mirpur.jpg", logo: "machine" },
+    { ownerId: owners[3].id, name: "Mohammadpur Linen", slug: "mohammadpur-linen", area: "Mohammadpur", address: "Tajmahal Road", lat: 23.766, lng: 90.358, phone: "01715000005", hue: 204, status: "APPROVED", factor: 0.95, tagline: "Household linen and everyday wear.", cover: "/laundries/cover-mohammadpur.jpg", logo: "fold" },
+    { ownerId: owners[4].id, name: "Uttara Fold Lane", slug: "uttara-fold-lane", area: "Uttara", address: "Sector 7", lat: 23.876, lng: 90.398, phone: "01716000006", hue: 250, status: "PENDING", factor: 1, tagline: "Waiting for approval.", cover: "/laundries/cover-uttara.jpg", logo: "basket" },
   ]
 
   const stores = []
@@ -298,6 +298,7 @@ async function main() {
         storeEarning: opts.status === "DELIVERED" ? subtotal - commissionAmt : 0,
         riderId: opts.riderId,
         createdAt: created,
+        updatedAt: created,
         items: { create: opts.lines.map((line) => ({ ...line, unit: "piece" })) },
         events: { create: [{ status: "PENDING", note: "Order placed", actorId: opts.customerId }, { status: opts.status, note: "Seeded", actorId: admin.id }] },
         payment: { create: { provider: "COD", amount: total, status: opts.status === "DELIVERED" ? "COLLECTED" : "COD_DUE" } },
@@ -364,6 +365,32 @@ async function main() {
       status: "DELIVERED",
       dayOffset: offset,
       lines: [{ name: "T-shirt", kind: "Wash only", price: 40, quantity: 2 }],
+    })
+  }
+  const menus = [
+    { name: "Shirt", kind: "Wash & iron", price: 70, quantity: 3 },
+    { name: "Jeans", kind: "Wash only", price: 80, quantity: 1 },
+    { name: "Saree", kind: "Dry clean", price: 380, quantity: 1 },
+    { name: "T-shirt", kind: "Wash only", price: 40, quantity: 4 },
+  ]
+  for (let offset = -22; offset <= -6; offset += 1) {
+    if (offset % 3 === 0) continue
+    const menu = menus[Math.abs(offset) % menus.length]
+    const store = stores[Math.abs(offset) % 5]
+    await makeOrder({
+      customerId: offset % 2 === 0 ? nusrat.id : imran.id,
+      storeId: store.id,
+      addressId: offset % 2 === 0 ? nusratHome!.id : imranHome!.id,
+      status: "DELIVERED",
+      dayOffset: offset,
+      riderId: store.id === chandni.id ? karim.rider!.id : shapla.rider!.id,
+      lines: [menu],
+    })
+  }
+  const bag = await db.price.findMany({ where: { storeId: chandni.id, active: true }, take: 2 })
+  if (bag.length) {
+    await db.cartItem.createMany({
+      data: bag.map((price, index) => ({ userId: nusrat.id, priceId: price.id, quantity: index + 2 })),
     })
   }
 

@@ -49,6 +49,8 @@ model Store {
   lng            Float
   phone          String
   hue            Int      @default(210)
+  cover          String   @default("")
+  logo           String   @default("")
   status         String   @default("PENDING")
   commissionRate Float    @default(12)
   rating         Float    @default(0)

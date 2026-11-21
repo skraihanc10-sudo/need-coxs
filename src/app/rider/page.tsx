@@ -20,9 +20,17 @@ export default async function RiderHome({ searchParams }: { searchParams: Promis
     orderBy: { updatedAt: "desc" },
   })
   const completed = await db.order.count({ where: { riderId: user.rider!.id, status: "DELIVERED" } })
+  const fieldJobs = await db.serviceBooking.findMany({
+    where: {
+      workerId: user.rider!.id,
+      status: done ? "COMPLETED" : { notIn: ["COMPLETED", "CANCELLED"] },
+    },
+    include: { customer: true, offering: true, store: true },
+    orderBy: { updatedAt: "desc" },
+  })
   return (
     <div className="px-4 py-5">
-      <h1 className="text-2xl font-extrabold">Pickup & deliveries</h1>
+      <h1 className="text-2xl font-extrabold">Field jobs</h1>
       <p className="text-sm text-muted-foreground">{user.name} · {user.rider!.zone}</p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div className="surface-card p-3"><span className="icon-chip"><Bike className="size-5" /></span><p className="mt-2 text-xs">Assigned</p><p className="text-2xl font-extrabold">{done ? "—" : orders.length}</p></div>
@@ -33,6 +41,17 @@ export default async function RiderHome({ searchParams }: { searchParams: Promis
         <Link href="/rider?tab=done" data-on={done}>Completed</Link>
       </div>
       <div className="mt-3 space-y-3">
+        {fieldJobs.map((job) => (
+          <Link key={job.id} href={`/rider/field/${job.code}`} className="surface-card block p-3">
+            <div className="flex justify-between">
+              <p className="font-bold">{job.offering.name}</p>
+              <StatusPill status={job.status} locale="en" />
+            </div>
+            <p className="text-xs text-muted-foreground">{job.code} · {job.customer.name}</p>
+            <p className="mt-1 text-sm">{job.store.name} · {job.visitSlot}</p>
+            <p className="font-extrabold">{job.paymentMethod} {job.price ? taka(job.price) : ""}</p>
+          </Link>
+        ))}
         {orders.map((order) => (
           <Link key={order.id} href={`/rider/jobs/${order.id}`} className="surface-card block p-3">
             <div className="flex justify-between">

@@ -7,7 +7,7 @@ import { SignJWT, jwtVerify } from "jose"
 import { db } from "@/lib/db"
 import { clearSession, getUser, setSession } from "@/lib/auth"
 import { authSecret } from "@/lib/secret"
-import { safeNext } from "@/lib/roles"
+import { homeFor, safeNext } from "@/lib/roles"
 import { AppError } from "@/lib/errors"
 import { getSettings } from "@/lib/settings"
 import { brand } from "@/theme/brand"
@@ -29,7 +29,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   }
   if (!user.active) return { error: "This account is paused. Contact support." }
   await setSession(user, remember ? 30 : 14)
-  redirect(safeNext(user.role, next || "/"))
+  redirect(safeNext(user.role, next || homeFor(user.role)))
 }
 
 export async function logout() {

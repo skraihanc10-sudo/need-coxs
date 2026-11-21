@@ -11,6 +11,15 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const t = copy(locale)
   const { tab = "current" } = await searchParams
   const past = tab === "past"
+  const bnBody = locale === "bn" ? "একটি সেবা বেছে বুক করুন।" : t.emptyBagBody
+  const jobs = await db.serviceBooking.findMany({
+    where: {
+      customerId: user.id,
+      status: past ? { in: ["COMPLETED", "CANCELLED"] } : { notIn: ["COMPLETED", "CANCELLED"] },
+    },
+    include: { store: true, offering: true },
+    orderBy: { createdAt: "desc" },
+  })
   const orders = await db.order.findMany({
     where: {
       customerId: user.id,
@@ -27,7 +36,19 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Link href="/orders?tab=past" data-on={past}>{t.past}</Link>
       </div>
       <div className="mt-4 space-y-3 px-4 pb-6">
-        {!orders.length ? <EmptyState title={t.noOrders} body={t.emptyBagBody} href="/stores" action={t.browse} /> : null}
+        {!orders.length && !jobs.length ? <EmptyState title={t.noOrders} body={bnBody} href="/hub" action={t.browse} /> : null}
+        {jobs.map((job) => (
+          <Link key={job.id} href={`/hub/jobs/${job.code}`} className="surface-card block p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-extrabold">{locale === "bn" ? job.offering.nameBn : job.offering.name}</p>
+                <p className="text-xs text-muted-foreground">{job.code} · {job.store.name}</p>
+              </div>
+              <StatusPill status={job.status} locale={locale} />
+            </div>
+            <p className="mt-2 font-extrabold">{job.price ? taka(job.price, locale) : job.quoteAmount ? taka(job.quoteAmount, locale) : t.from}</p>
+          </Link>
+        ))}
         {orders.map((order) => (
           <Link key={order.id} href={`/orders/${order.code}`} className="surface-card block p-4">
             <div className="flex items-start justify-between gap-2">

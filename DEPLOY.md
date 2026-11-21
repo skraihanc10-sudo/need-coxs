@@ -62,7 +62,8 @@ openssl rand -base64 32
 
 1. `prisma migrate deploy` creates the schema on the empty file.
 2. If the `User` table has no rows, the demo seed runs once.
-3. Later restarts migrate again and skip the seed, so demo rows are not duplicated and real orders stay on the volume.
+3. The catalog step then adds any missing Cox's Bazar categories, areas, and providers. It does not overwrite rows that already exist, so a database that already has users still receives new categories.
+4. Later restarts migrate again, skip the full seed, and leave existing catalog rows in place. Real orders stay on the volume.
 
 Demo logins after the first seed:
 
@@ -72,6 +73,9 @@ Demo logins after the first seed:
 | Laundry | store@needcoxs.test | store123 |
 | Rider | rider@needcoxs.test | rider123 |
 | Admin | admin@needcoxs.test | admin123 |
+| WiFi | wifi@needcoxs.test | wifi123 |
+| Electrician | electric@needcoxs.test | electric123 |
+| Cleaning team | cleaning@needcoxs.test | cleaning123 |
 
 Change these passwords from the admin profile and customer screens after the owner signs in. Passwords are stored as hashes.
 

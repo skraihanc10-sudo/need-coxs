@@ -71,5 +71,7 @@ export const config = {
     "/cart/:path*",
     "/chat",
     "/chat/:path*",
+    "/hub/jobs",
+    "/hub/jobs/:path*",
   ],
 }

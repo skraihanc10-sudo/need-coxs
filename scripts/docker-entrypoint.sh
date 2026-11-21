@@ -22,5 +22,8 @@ node /app/node_modules/prisma/build/index.js migrate deploy
 echo "Seeding only when the database has no users"
 node scripts/seed-if-empty.mjs
 
+echo "Adding any missing Cox's Bazar categories"
+node scripts/run-catalog.mjs
+
 echo "Starting Need Cox's on ${HOSTNAME:-0.0.0.0}:${PORT:-3000}"
 exec node server.js

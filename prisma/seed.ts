@@ -439,6 +439,9 @@ async function main() {
     data: { userId: karim.id, channel: "IN_APP", title: brand.name, body: "A pickup is assigned to you.", status: "SENT" },
   })
 
+  const marketplace = (await import("../scripts/seed-catalog.mjs")) as { ensureMarketplace: () => Promise<void> }
+  await marketplace.ensureMarketplace()
+
   console.log("Seeded Need Cox's")
   console.log(demoAccounts.map((account) => `${account.label}: ${account.email} / ${account.password}`).join("\n"))
 }

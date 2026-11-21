@@ -10,7 +10,7 @@ export default async function StoresPage() {
   const locale = await getLocale()
   const t = copy(locale)
   const stores = await db.store.findMany({
-    where: { status: "APPROVED" },
+    where: { status: "APPROVED", listing: "LAUNDRY" },
     include: { prices: { where: { active: true }, select: { amount: true } } },
     orderBy: { rating: "desc" },
   })

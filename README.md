@@ -1,14 +1,15 @@
 # Need Cox's
 
-Doorstep laundry for Dhaka. Customers compare neighbourhood wash houses, pick clothes and a service (wash, iron, wash & iron, or dry clean), choose pickup and delivery slots, and pay cash on delivery. Laundries, riders, and the Need Cox's desk each have their own panel.
-
-Currency is BDT (৳). The customer app is English with a Bangla toggle.
+Cox's Bazar services desk. Customers book laundry, WiFi, electricians, plumbers, AC repair, resort cleaning teams, and day labour. Laundry keeps its clothes picker, slots, and cash on delivery. Other jobs are requested, quoted, and tracked. Currency is BDT (৳). The customer app defaults to Bangla, with an English toggle.
 
 ## Demo logins
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Customer | customer@needcoxs.test | customer123 |
+| WiFi provider | wifi@needcoxs.test | wifi123 |
+| Electrician | electric@needcoxs.test | electric123 |
+| Cleaning team | cleaning@needcoxs.test | cleaning123 |
 | Laundry | store@needcoxs.test | store123 |
 | Rider | rider@needcoxs.test | rider123 |
 | Admin | admin@needcoxs.test | admin123 |

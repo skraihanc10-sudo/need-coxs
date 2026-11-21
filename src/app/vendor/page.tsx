@@ -13,9 +13,10 @@ export default async function VendorHome() {
     db.order.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 6, include: { customer: true } }),
     storeBalance(store.id),
   ])
-  const [pending, totalOrders] = await Promise.all([
+  const [pending, totalOrders, openJobs] = await Promise.all([
     db.order.count({ where: { storeId: store.id, status: "PENDING" } }),
     db.order.count({ where: { storeId: store.id } }),
+    db.serviceBooking.count({ where: { storeId: store.id, status: { notIn: ["COMPLETED", "CANCELLED"] } } }),
   ])
   const tiles = [
     ["Orders", String(totalOrders), ClipboardList],
@@ -36,6 +37,7 @@ export default async function VendorHome() {
           </div>
         ))}
       </div>
+      <Link href="/vendor/jobs" className="mt-4 block rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,white)] px-4 py-3 text-sm font-bold">{openJobs} open service jobs</Link>
       <div className="mt-5 flex items-center justify-between">
         <h2 className="font-extrabold">Latest orders</h2>
         <Link href="/vendor/orders" className="text-sm font-bold text-[var(--brand)]">All</Link>

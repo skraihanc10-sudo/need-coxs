@@ -12,6 +12,11 @@ export const STATUS_LABEL: Record<string, { en: string; bn: string }> = {
   DELIVERED: { en: "Completed", bn: "সম্পন্ন" },
   CANCELLED: { en: "Cancelled", bn: "বাতিল" },
   REJECTED: { en: "Declined", bn: "প্রত্যাখ্যাত" },
+  REQUESTED: { en: "Requested", bn: "অনুরোধ" },
+  QUOTED: { en: "Quoted", bn: "দাম এসেছে" },
+  ON_THE_WAY: { en: "On the way", bn: "পথে" },
+  IN_PROGRESS: { en: "In progress", bn: "চলছে" },
+  COMPLETED: { en: "Completed", bn: "সম্পন্ন" },
 }
 
 export function statusLabel(status: string, locale: Locale) {
@@ -41,7 +46,7 @@ export const FLOW = [
 export function statusTone(status: string) {
   if (status === "DELIVERED") return "bg-emerald-100 text-emerald-800"
   if (status === "CANCELLED" || status === "REJECTED") return "bg-rose-100 text-rose-700"
-  if (status === "ON_HOLD" || status === "PENDING") return "bg-amber-100 text-amber-800"
+  if (status === "ON_HOLD" || status === "PENDING" || status === "REQUESTED" || status === "QUOTED") return "bg-amber-100 text-amber-800"
   if (status === "READY" || status === "OUT_FOR_DELIVERY") return "bg-sky-100 text-sky-800"
   return "bg-blue-100 text-blue-800"
 }

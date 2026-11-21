@@ -15,7 +15,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const query = q.trim().toLowerCase()
   const [stores, kinds, banners] = await Promise.all([
     db.store.findMany({
-      where: { status: "APPROVED" },
+      where: { status: "APPROVED", listing: "LAUNDRY" },
       include: { prices: { where: { active: true }, select: { amount: true } } },
     }),
     db.kind.findMany({ orderBy: { sort: "asc" } }),

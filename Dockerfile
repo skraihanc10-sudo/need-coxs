@@ -47,6 +47,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/src/lib/db.ts ./src/lib/db.ts
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/settings.ts ./src/lib/settings.ts
 COPY --from=builder --chown=nextjs:nodejs /app/src/theme ./src/theme
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/seed-if-empty.mjs ./scripts/seed-if-empty.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/seed-catalog.mjs ./scripts/seed-catalog.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/catalog-data.mjs ./scripts/catalog-data.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/run-catalog.mjs ./scripts/run-catalog.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 COPY --from=builder --chown=nextjs:nodejs /prisma-runtime ./node_modules
 

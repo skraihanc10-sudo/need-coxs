@@ -4,6 +4,9 @@ export const demoPassword = {
   store: "store123",
   rider: "rider123",
   customer: "customer123",
+  wifi: "wifi123",
+  electric: "electric123",
+  cleaning: "cleaning123",
 } as const
 
 export const demoAccounts = [
@@ -30,5 +33,23 @@ export const demoAccounts = [
     label: "Admin",
     email: "admin@needcoxs.test",
     password: demoPassword.admin,
+  },
+  {
+    role: "STORE",
+    label: "WiFi",
+    email: "wifi@needcoxs.test",
+    password: demoPassword.wifi,
+  },
+  {
+    role: "STORE",
+    label: "Electrician",
+    email: "electric@needcoxs.test",
+    password: demoPassword.electric,
+  },
+  {
+    role: "STORE",
+    label: "Cleaning",
+    email: "cleaning@needcoxs.test",
+    password: demoPassword.cleaning,
   },
 ] as const

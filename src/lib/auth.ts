@@ -73,5 +73,5 @@ export async function requireUser(roles: string[], nextPath = "/") {
 
 export async function getLocale() {
   const value = (await cookies()).get("nc_locale")?.value
-  return value === "bn" ? "bn" : "en"
+  return value === "en" ? "en" : "bn"
 }

@@ -48,8 +48,8 @@ function Desk({ steps = false }: { steps?: boolean }) {
         </p>
         <p className="mt-2 max-w-xs text-sm leading-6 text-[var(--brand-muted)]">
           {steps
-            ? "Compare neighbourhood laundries in Dhaka, choose a cloth and a service, and pay the rider in cash."
-            : "Doorstep laundry for Dhaka. Cash on delivery is live."}
+            ? "Compare neighbourhood laundries, choose a cloth and a service, and pay the rider in cash."
+            : "Cox's Bazar services. Laundry, trades, and a team for the resort. Pay in cash, bKash, or Nagad."}
         </p>
       </div>
     </aside>
@@ -64,7 +64,7 @@ function CustomerNav({
   labels: { home: string; orders: string; offers: string; chat: string; profile: string }
 }) {
   const items = [
-    [labels.home, "/app", Home],
+    [labels.home, "/hub", Home],
     [labels.orders, "/orders", ClipboardList],
     [labels.offers, "/offers", TicketPercent],
     [labels.chat, "/chat", MessageCircle],
@@ -73,7 +73,7 @@ function CustomerNav({
   return (
     <nav className="bottom-nav grid-cols-5">
       {items.map(([label, href, Icon]) => {
-        const on = href === "/app" ? path === "/app" : path === href || path.startsWith(`${href}/`)
+        const on = href === "/hub" ? path === "/hub" || path.startsWith("/hub/") : path === href || path.startsWith(`${href}/`)
         return (
           <Link key={href} href={href} data-on={on}>
             <Icon className="size-5" />
@@ -88,8 +88,8 @@ function CustomerNav({
 function StoreNav({ path }: { path: string }) {
   const items = [
     ["Home", "/vendor", LayoutGrid],
-    ["Orders", "/vendor/orders", ClipboardList],
-    ["Prices", "/vendor/prices", Shirt],
+    ["Jobs", "/vendor/jobs", ClipboardList],
+    ["Laundry", "/vendor/orders", Shirt],
     ["Account", "/vendor/account", UserRound],
   ] as const
   return (
@@ -134,6 +134,10 @@ export function AdminShell({ name, children }: { name: string; children: React.R
   const links = [
     ["/admin", "Overview"],
     ["/admin/orders", "Orders"],
+    ["/admin/bookings", "Bookings"],
+    ["/admin/categories", "Categories"],
+    ["/admin/areas", "Areas"],
+    ["/admin/providers", "Providers"],
     ["/admin/messages", "Messages"],
     ["/admin/stores", "Stores"],
     ["/admin/customers", "Customers"],

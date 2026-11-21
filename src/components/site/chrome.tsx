@@ -31,7 +31,7 @@ export function SiteHeader({ phone }: { phone: string }) {
           </span>
           <span>
             <span className="block text-xl leading-none" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>{brand.name}</span>
-            <span className="text-[10px] tracking-[0.16em] text-[var(--pub-muted)]">DOORSTEP LAUNDRY</span>
+            <span className="text-[10px] tracking-[0.16em] text-[var(--pub-muted)]">COX&apos;S BAZAR</span>
           </span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold lg:flex">
@@ -47,7 +47,7 @@ export function SiteHeader({ phone }: { phone: string }) {
             <button name="locale" value="en" className="px-1">EN</button>
             <button name="locale" value="bn" className="px-1">বাং</button>
           </form>
-          <Link href="/app" className="hidden items-center gap-2 sm:flex">
+          <Link href="/hub" className="hidden items-center gap-2 sm:flex">
             <span className="grid size-12 place-items-center rounded-full text-white" style={{ background: "var(--pub-green)" }}>
               <Phone className="size-5" />
             </span>
@@ -63,7 +63,7 @@ export function SiteHeader({ phone }: { phone: string }) {
           {LINKS.map(([label, href]) => (
             <Link key={href} href={href} onClick={() => setOpen(false)} className="py-2 font-semibold">{label}</Link>
           ))}
-          <Link href="/app" className="pub-btn mt-2" onClick={() => setOpen(false)}>Book now</Link>
+          <Link href="/hub" className="pub-btn mt-2" onClick={() => setOpen(false)}>Book now</Link>
         </nav>
       ) : null}
       <span className="sr-only">{phone}</span>

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { db } from "@/lib/db"
 import { dhakaDate, recentDays, taka } from "@/lib/format"
 import { requireUser } from "@/lib/auth"
+import { categoryStats } from "@/lib/marketplace"
 
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ view?: string; range?: string }> }) {
   await requireUser(["ADMIN"], "/admin")
@@ -36,6 +37,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const max = Math.max(1, ...counts.map((item) => item.value))
   const gmv = orders.reduce((sum, order) => sum + order.total, 0)
   const pendingStores = await db.store.count({ where: { status: "PENDING" } })
+  const stats = await categoryStats()
+  const serviceGmv = stats.reduce((sum, row) => sum + row.gmv, 0)
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-extrabold">Need Cox&apos;s desk</h1>
@@ -66,9 +69,18 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             )
           })}
         </div>
-        <p className="mt-3 text-sm">Gross bookings {taka(gmv)} · {pendingStores} laundries waiting for approval</p>
+        <p className="mt-3 text-sm">Laundry gross {taka(gmv)} · service gross {taka(serviceGmv)} · {pendingStores} providers waiting</p>
       </div>
-      <Link href="/admin/orders" className="pill mt-4 flex w-full items-center justify-center bg-primary text-primary-foreground md:w-64">View all orders</Link>
+      <div className="mt-4 grid gap-2 md:grid-cols-3">
+        {stats.map((row) => (
+          <Link key={row.id} href="/admin/categories" className="surface-card block p-3">
+            <p className="font-bold">{row.name}</p>
+            <p className="text-xs text-muted-foreground">{row.open} open · {row.bookings} bookings · commission {row.commissionRate}%</p>
+            <p className="mt-1 text-sm font-extrabold">{taka(row.gmv)}</p>
+          </Link>
+        ))}
+      </div>
+      <Link href="/admin/bookings" className="pill mt-4 flex w-full items-center justify-center bg-primary text-primary-foreground md:w-64">Service bookings</Link>
     </div>
   )
 }

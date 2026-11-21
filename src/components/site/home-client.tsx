@@ -7,15 +7,15 @@ import { brand } from "@/theme/brand"
 const slides = [
   {
     image: "/marketing/hero-laundry.jpg",
-    kicker: "Dhaka doorstep laundry",
-    title: "Need Cox's cleaning & laundry services.",
-    titleBn: "Need Cox's পরিষ্কার কাপড়, দরজায়।",
+    kicker: "Cox's Bazar",
+    title: "What do you need in Cox's Bazar?",
+    titleBn: "কক্সবাজারে কী দরকার?",
   },
   {
     image: "/marketing/svc-fold.jpg",
-    kicker: "Price the cloth first",
-    title: "Wash, press, or dry-clean. You pick.",
-    titleBn: "ধোয়া, ইস্ত্রি, বা ড্রাই-ক্লিন।",
+    kicker: "Laundry still books here",
+    title: "Wash, trades, and a team for the resort.",
+    titleBn: "কাপড়, মিস্ত্রি, আর রিসোর্টের দল।",
   },
 ]
 
@@ -30,9 +30,14 @@ export function HeroSlider({ bn }: { bn: boolean }) {
         <div className="reveal">
           <p className="text-sm font-bold tracking-[0.2em] text-[var(--pub-green)]">{slide.kicker}</p>
           <h1 className="mt-3 max-w-xl text-5xl leading-[0.95] md:text-7xl">{bn ? slide.titleBn : slide.title}</h1>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/about" className="pub-btn">Learn more</Link>
-            <Link href="/services" className="pub-btn ghost">Our services</Link>
+          <form action="/hub" className="mt-6 flex max-w-xl overflow-hidden rounded-full bg-white text-[var(--pub-ink)] shadow-lg">
+            <label className="sr-only" htmlFor="need">{bn ? "কী দরকার?" : "What do you need?"}</label>
+            <input id="need" name="q" placeholder={bn ? "কী দরকার?" : "What do you need?"} className="h-14 flex-1 bg-transparent px-5 text-base outline-none" />
+            <button className="m-1 rounded-full px-5 text-sm font-extrabold text-white" style={{ background: "var(--pub-green)" }}>{bn ? "খুঁজুন" : "Search"}</button>
+          </form>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/hub" className="pub-btn">{bn ? "অ্যাপ খুলুন" : "Open the app"}</Link>
+            <Link href="/partner" className="pub-btn ghost">{bn ? "প্রোভাইডার হোন" : "Become a provider"}</Link>
           </div>
         </div>
         <Link href="/offers" className="absolute top-10 right-4 grid size-28 place-items-center rounded-full bg-[var(--pub-yellow)] text-center text-xs font-extrabold text-[var(--pub-ink)] shadow-lg md:right-10">

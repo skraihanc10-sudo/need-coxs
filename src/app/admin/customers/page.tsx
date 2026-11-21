@@ -1,38 +1,48 @@
-import { requireUser } from "@/lib/auth"
+import Link from "next/link"
+import { requireUser, getLocale } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { adjustWallet, setUserPassword, toggleUser } from "@/actions/admin"
-import { taka } from "@/lib/format"
+import { formatWhen, taka } from "@/lib/format"
+import { pick } from "@/lib/i18n"
+import { PageHeader } from "@/components/bits"
 
-export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {
-  await requireUser(["ADMIN"], "/admin/customers")
-  const sp = await searchParams
-  const users = await db.user.findMany({ where: { role: "CUSTOMER" }, include: { wallet: true }, orderBy: { createdAt: "desc" } })
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const [{ q = "" }, , locale] = await Promise.all([searchParams, requireUser(["ADMIN"], "/admin/customers"), getLocale()])
+  const needle = q.trim()
+  const customers = await db.user.findMany({
+    where: { role: "CUSTOMER", ...(needle ? { OR: [{ name: { contains: needle } }, { phone: { contains: needle } }, { email: { contains: needle } }] } : {}) },
+    orderBy: { createdAt: "desc" },
+    take: 300,
+    include: {
+      bookings: { select: { status: true, finalPrice: true, estimatedPrice: true, createdAt: true } },
+    },
+  })
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-extrabold">Customers</h1>
-      {sp.error ? <p className="text-sm text-rose-600">{sp.error}</p> : null}
-      {sp.ok ? <p className="text-sm text-emerald-700">Saved.</p> : null}
-      <div className="mt-4 space-y-3">
-        {users.map((user) => (
-          <article key={user.id} className="surface-card p-4">
-            <p className="font-bold">{user.name} {user.active ? "" : "· paused"}</p>
-            <p className="text-sm text-muted-foreground">{user.email} · wallet {taka(user.wallet?.balance ?? 0)}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <form action={toggleUser}><input type="hidden" name="id" value={user.id} /><input type="hidden" name="back" value="/admin/customers" /><button className="text-sm font-bold">{user.active ? "Pause" : "Activate"}</button></form>
-            </div>
-            <form action={adjustWallet} className="mt-2 flex gap-2">
-              <input type="hidden" name="id" value={user.id} />
-              <input name="amount" type="number" placeholder="+/- ৳" className="h-10 w-28 rounded-xl border px-2" />
-              <input name="note" placeholder="Note" className="h-10 flex-1 rounded-xl border px-2" />
-              <button className="text-sm font-bold">Wallet</button>
-            </form>
-            <form action={setUserPassword} className="mt-2 flex gap-2">
-              <input type="hidden" name="id" value={user.id} />
-              <input name="password" type="text" placeholder="New password" className="h-10 flex-1 rounded-xl border px-2" />
-              <button className="text-sm font-bold">Set password</button>
-            </form>
-          </article>
-        ))}
+    <div>
+      <PageHeader title={pick(locale, "কাস্টমার", "Customers")} sub={pick(locale, `${customers.length} জন`, `${customers.length} people`)} />
+      <form className="mb-4 flex gap-2">
+        <input name="q" defaultValue={q} className="field h-10 max-w-sm" placeholder={pick(locale, "নাম, ফোন বা ইমেইল", "Name, phone or email")} />
+        <button className="btn-primary h-10 px-4 text-sm">{pick(locale, "খুঁজুন", "Search")}</button>
+      </form>
+      <div className="card overflow-x-auto">
+        <table className="table">
+          <thead><tr><th>{pick(locale, "নাম", "Name")}</th><th>{pick(locale, "ফোন / ইমেইল", "Phone / email")}</th><th>{pick(locale, "বুকিং", "Bookings")}</th><th className="text-right">{pick(locale, "মোট খরচ", "Spent")}</th><th>{pick(locale, "শেষ বুকিং", "Last booking")}</th><th>{pick(locale, "যোগ দিয়েছেন", "Joined")}</th></tr></thead>
+          <tbody>
+            {customers.map((c) => {
+              const done = c.bookings.filter((b) => b.status === "COMPLETED")
+              const last = c.bookings.map((b) => b.createdAt).sort((a, b) => b.getTime() - a.getTime())[0]
+              return (
+                <tr key={c.id} className="hover:bg-canvas">
+                  <td><Link href={`/admin/customers/${c.id}`} className="font-extrabold text-brand">{c.name}</Link>{!c.active ? <span className="pill ml-2 bg-rose-100 text-rose-700">{pick(locale, "বন্ধ", "Off")}</span> : null}</td>
+                  <td>{c.phone ?? ""} {c.email ? <span className="text-muted-foreground">{c.email}</span> : null}</td>
+                  <td>{c.bookings.length} <span className="text-muted-foreground">({done.length} {pick(locale, "শেষ", "done")})</span></td>
+                  <td className="text-right font-extrabold">{taka(done.reduce((s, b) => s + (b.finalPrice ?? b.estimatedPrice), 0), locale)}</td>
+                  <td className="text-muted-foreground">{last ? formatWhen(last, locale) : "—"}</td>
+                  <td className="text-muted-foreground">{formatWhen(c.createdAt, locale)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

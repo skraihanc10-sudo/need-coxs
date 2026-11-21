@@ -4,9 +4,10 @@ import { brand } from "@/theme/brand"
 export default function NotFound() {
   return (
     <div className="mx-auto max-w-md px-6 py-20 text-center">
-      <p className="font-extrabold">{brand.name}</p>
-      <h1 className="mt-2 text-3xl font-extrabold">That page is not here</h1>
-      <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-primary px-5 font-bold text-primary-foreground">Go home</Link>
+      <p className="font-extrabold text-brand">{brand.nameBn}</p>
+      <h1 className="display mt-2 text-3xl font-extrabold text-ink">পেজটা পাওয়া যায়নি</h1>
+      <p className="mt-2 text-sm text-muted-foreground">That page is not here. The link may be old, or it belongs to someone else.</p>
+      <Link href="/" className="btn-primary mt-6 inline-flex">হোমে ফিরে যান</Link>
     </div>
   )
 }

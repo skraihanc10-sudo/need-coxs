@@ -1,51 +1,62 @@
-export type ProviderId = "COD" | "BKASH" | "SSLCOMMERZ" | "STRIPE"
+/**
+ * Payment providers. Today every method only records the payment: the worker
+ * collects cash, or the customer sends bKash/Nagad and we note the reference.
+ * A real gateway implements `startCheckout` and `verify`; nothing else changes.
+ */
+export type PaymentMethod = "CASH" | "BKASH" | "NAGAD"
 
-export const providers: {
-  id: ProviderId
-  label: string
+export interface PaymentProvider {
+  id: PaymentMethod
   labelBn: string
-  setting: string
-  env: string[]
+  label: string
+  hintBn: string
   hint: string
-}[] = [
+  /** Env keys a live gateway needs. Empty for cash. */
+  env: string[]
+  /** Settings key that turns the method on or off. */
+  setting: string
+  /** Live gateways return a URL to send the customer to. Record-only providers return null. */
+  startCheckout?(input: { bookingCode: string; amount: number }): Promise<string | null>
+}
+
+export const PAYMENT_PROVIDERS: PaymentProvider[] = [
   {
-    id: "COD",
-    label: "Cash on delivery",
-    labelBn: "ক্যাশ অন ডেলিভারি",
-    setting: "payCod",
+    id: "CASH",
+    labelBn: "ক্যাশ",
+    label: "Cash",
+    hintBn: "কাজ শেষে কর্মীর হাতে টাকা দিন।",
+    hint: "Pay the worker when the job is done.",
     env: [],
-    hint: "Pay the rider when the clothes come back.",
+    setting: "payCash",
   },
   {
     id: "BKASH",
-    label: "bKash",
     labelBn: "বিকাশ",
-    setting: "payBkash",
+    label: "bKash",
+    hintBn: "কাজ শেষে আমাদের বিকাশ নম্বরে পাঠান। পরে অনলাইন পেমেন্ট চালু হবে।",
+    hint: "Send to our bKash number after the job. Online checkout comes later.",
     env: ["BKASH_APP_KEY", "BKASH_APP_SECRET", "BKASH_USERNAME", "BKASH_PASSWORD"],
-    hint: "Tokenized bKash checkout. Add the merchant keys to turn it on.",
+    setting: "payBkash",
   },
   {
-    id: "SSLCOMMERZ",
-    label: "SSLCommerz",
-    labelBn: "এসএসএলকমার্জ",
-    setting: "paySsl",
-    env: ["SSLCOMMERZ_STORE_ID", "SSLCOMMERZ_STORE_PASSWORD"],
-    hint: "Cards, mobile banking, and net banking through SSLCommerz.",
-  },
-  {
-    id: "STRIPE",
-    label: "Card (Stripe)",
-    labelBn: "কার্ড (স্ট্রাইপ)",
-    setting: "payStripe",
-    env: ["STRIPE_SECRET_KEY"],
-    hint: "Stripe Checkout session. Add the secret key to turn it on.",
+    id: "NAGAD",
+    labelBn: "নগদ",
+    label: "Nagad",
+    hintBn: "কাজ শেষে আমাদের নগদ নম্বরে পাঠান। পরে অনলাইন পেমেন্ট চালু হবে।",
+    hint: "Send to our Nagad number after the job. Online checkout comes later.",
+    env: ["NAGAD_MERCHANT_ID", "NAGAD_PUBLIC_KEY", "NAGAD_PRIVATE_KEY"],
+    setting: "payNagad",
   },
 ]
 
-export function providerView(id: string, settings: Record<string, string>) {
-  const provider = providers.find((item) => item.id === id) ?? providers[0]
-  const enabled = settings[provider.setting] !== "0"
-  const missing = provider.env.filter((key) => !process.env[key])
-  const configured = missing.length === 0
-  return { ...provider, enabled, configured, missing }
+export function paymentProvider(id: string) {
+  return PAYMENT_PROVIDERS.find((p) => p.id === id)
+}
+
+export function enabledProviders(settings: Record<string, string>) {
+  return PAYMENT_PROVIDERS.filter((p) => settings[p.setting] !== "0")
+}
+
+export function gatewayReady(provider: PaymentProvider) {
+  return provider.env.every((key) => Boolean(process.env[key]))
 }

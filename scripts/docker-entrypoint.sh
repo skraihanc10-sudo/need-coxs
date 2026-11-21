@@ -2,8 +2,8 @@
 set -eu
 
 if [ "$(id -u)" = "0" ]; then
-  mkdir -p /data
-  chown nextjs:nodejs /data
+  mkdir -p /data /data/uploads
+  chown -R nextjs:nodejs /data
   exec gosu nextjs:nodejs "$0" "$@"
 fi
 
@@ -19,11 +19,11 @@ fi
 echo "Applying database migrations"
 node /app/node_modules/prisma/build/index.js migrate deploy
 
-echo "Seeding only when the database has no users"
+echo "Seeding demo accounts only when the database has no users"
 node scripts/seed-if-empty.mjs
 
-echo "Adding any missing Cox's Bazar categories"
-node scripts/run-catalog.mjs
+echo "Adding any missing Sadar areas, services, FAQs and settings"
+node prisma/seed.mjs --catalog
 
 echo "Starting Cox's Seba on ${HOSTNAME:-0.0.0.0}:${PORT:-3000}"
 exec node server.js

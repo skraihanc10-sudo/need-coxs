@@ -1,22 +1,33 @@
 import { db } from "./db"
-import { getSettings } from "./settings"
 
-export async function notify(userId: string | null | undefined, title: string, body: string) {
-  if (!userId) return
-  const settings = await getSettings()
-  const rows = [
-    { channel: "IN_APP", status: settings.notifyInApp === "1" ? "SENT" : "SKIPPED" },
-    { channel: "EMAIL", status: settings.notifyEmail === "1" ? "QUEUED" : "SKIPPED" },
-    { channel: "SMS", status: settings.notifySms === "1" ? "QUEUED" : "SKIPPED" },
-    { channel: "PUSH", status: settings.notifyPush === "1" ? "QUEUED" : "SKIPPED" },
-  ]
+export type NoticeInput = {
+  kind?: string
+  title: string
+  body: string
+  link?: string
+}
+
+/** In-app notification. Email/SMS/push can hang off this later. */
+export async function notify(userIds: Array<string | null | undefined>, notice: NoticeInput, except?: string) {
+  const ids = [...new Set(userIds.filter((id): id is string => Boolean(id) && id !== except))]
+  if (!ids.length) return
   await db.notice.createMany({
-    data: rows.map((row) => ({
+    data: ids.map((userId) => ({
       userId,
-      channel: row.channel,
-      title,
-      body,
-      status: row.status,
+      kind: notice.kind ?? "INFO",
+      title: notice.title,
+      body: notice.body,
+      link: notice.link ?? "",
     })),
   })
+}
+
+/** Everyone in the office who should hear about support events. */
+export async function officeIds() {
+  const rows = await db.user.findMany({ where: { role: { in: ["ADMIN", "SUPPORT"] }, active: true }, select: { id: true } })
+  return rows.map((r) => r.id)
+}
+
+export async function unreadNotices(userId: string) {
+  return db.notice.count({ where: { userId, read: false } })
 }

@@ -1,241 +1,129 @@
 "use server"
 
-import bcrypt from "bcryptjs"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { SignJWT, jwtVerify } from "jose"
+import { cookies } from "next/headers"
+import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
-import { clearSession, getUser, setSession } from "@/lib/auth"
-import { authSecret } from "@/lib/secret"
-import { homeFor, safeNext } from "@/lib/roles"
 import { AppError } from "@/lib/errors"
-import { getSettings } from "@/lib/settings"
-import { brand } from "@/theme/brand"
+import { run, type ActionState } from "@/lib/action"
+import { actor, clearSession, clientIp, getUser, LOCALE_COOKIE, setSession } from "@/lib/auth"
+import { homeFor, safeNext } from "@/lib/roles"
+import { limited } from "@/lib/rate-limit"
+import { normalisePhone } from "@/lib/format"
+import { sendOtp, verifyOtp } from "@/lib/otp"
+import { formObject, loginSchema, otpSchema, parse, phoneInput, profileSchema, addressSchema } from "@/lib/validation"
+import { sadarArea } from "@/lib/bookings"
 
-export type AuthState = { error: string }
-
-function clean(value: FormDataEntryValue | null) {
-  return String(value ?? "").trim()
+export async function loginAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const input = parse(loginSchema, formObject(form))
+  const found: { user?: { id: string; role: string; name: string } } = {}
+  const state = await run(async () => {
+    limited("login", await clientIp())
+    const phone = normalisePhone(input.identifier)
+    const row = await db.user.findFirst({
+      where: phone ? { phone } : { email: input.identifier.toLowerCase() },
+    })
+    const bad = new AppError("ইমেইল/মোবাইল বা পাসওয়ার্ড ঠিক নেই।", "Email/mobile or password is not right.")
+    if (!row || !row.passwordHash) throw bad
+    if (!(await bcrypt.compare(input.password, row.passwordHash))) throw bad
+    if (!row.active) throw new AppError("এই অ্যাকাউন্টটা বন্ধ আছে। হেল্পলাইনে কল দিন।", "This account is disabled. Please call the helpline.")
+    found.user = row
+  })
+  if (!state.ok || !found.user) return state
+  await setSession(found.user)
+  redirect(safeNext(found.user.role, input.next || homeFor(found.user.role)))
 }
 
-export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const email = clean(formData.get("email")).toLowerCase()
-  const password = clean(formData.get("password"))
-  const remember = formData.get("remember") === "on"
-  const next = clean(formData.get("next"))
-  const user = await db.user.findUnique({ where: { email } })
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    return { error: "Those details do not match a Cox's Seba account." }
+export async function sendOtpAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const phone = parse(phoneInput, form.get("phone") ?? "")
+  return run(async () => {
+    limited("otpSend", `${await clientIp()}:${normalisePhone(phone)}`)
+    const sent = await sendOtp(phone)
+    return sent.demo ? "ডেমো কোড: 123456" : "কোড পাঠানো হয়েছে।"
+  })
+}
+
+/** Phone + OTP sign-in. Creates the customer on first use. */
+export async function verifyOtpAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const input = parse(otpSchema, formObject(form))
+  const found: { user?: { id: string; role: string; name: string } } = {}
+  const state = await run(async () => {
+    limited("otpVerify", await clientIp())
+    const phone = await verifyOtp(input.phone, input.code)
+    found.user = await customerByPhone(phone, input.name)
+  })
+  if (!state.ok || !found.user) return state
+  await setSession(found.user)
+  redirect(safeNext(found.user.role, input.next || "/"))
+}
+
+/** Find or create the customer who owns this verified phone. */
+export async function customerByPhone(phone: string, name: string) {
+  const existing = await db.user.findUnique({ where: { phone } })
+  if (existing) {
+    if (!existing.active) throw new AppError("এই অ্যাকাউন্টটা বন্ধ আছে। হেল্পলাইনে কল দিন।", "This account is disabled. Please call the helpline.")
+    return existing
   }
-  if (!user.active) return { error: "This account is paused. Contact support." }
-  await setSession(user, remember ? 30 : 14)
-  redirect(safeNext(user.role, next || homeFor(user.role)))
+  return db.user.create({ data: { phone, name: name.trim() || `গ্রাহক ${phone.slice(-4)}`, role: "CUSTOMER" } })
 }
 
-export async function logout() {
+export async function logoutAction() {
   await clearSession()
   redirect("/login")
 }
 
-export async function register(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const name = clean(formData.get("name"))
-  const email = clean(formData.get("email")).toLowerCase()
-  const phone = clean(formData.get("phone"))
-  const password = clean(formData.get("password"))
-  const referral = clean(formData.get("referral")).toUpperCase()
-  if (name.length < 2) return { error: "Add your name." }
-  if (!email.includes("@")) return { error: "Add a valid email." }
-  if (password.length < 6) return { error: "Use at least 6 characters." }
-  const existing = await db.user.findUnique({ where: { email } })
-  if (existing) return { error: "That email is already registered." }
-
-  const settings = await getSettings()
-  const bonus = Number(settings.referralBonus || 0)
-  const referrer = referral
-    ? await db.user.findUnique({ where: { referralCode: referral } })
-    : null
-  const code = `${name.split(" ")[0] || "NEEL"}`.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 8) +
-    Math.floor(100 + Math.random() * 900)
-
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      phone,
-      passwordHash: await bcrypt.hash(password, 10),
-      role: "CUSTOMER",
-      referralCode: code,
-      referredById: referrer?.id,
-      wallet: { create: { balance: referrer ? bonus : 0 } },
-    },
-  })
-  if (referrer && bonus > 0) {
-    await db.walletTxn.create({
-      data: { userId: user.id, amount: bonus, type: "CREDIT", note: `Referral from ${referrer.name}` },
-    })
-    await db.wallet.update({ where: { userId: referrer.id }, data: { balance: { increment: bonus } } })
-    await db.walletTxn.create({
-      data: { userId: referrer.id, amount: bonus, type: "CREDIT", note: `${name} joined with your code` },
-    })
-  } else if (!referrer) {
-    await db.walletTxn.create({
-      data: { userId: user.id, amount: 0, type: "CREDIT", note: "Wallet opened" },
-    })
-  }
-
-  const token = await new SignJWT({ purpose: "otp" })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(user.id)
-    .setExpirationTime("20m")
-    .sign(authSecret())
+export async function setLocaleAction(form: FormData) {
+  const locale = form.get("locale") === "en" ? "en" : "bn"
+  const back = String(form.get("back") ?? "/")
   const jar = await cookies()
-  jar.set("nc_otp", token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 20 })
-  redirect("/otp")
+  jar.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" })
+  redirect(back.startsWith("/") && !back.startsWith("//") ? back : "/")
 }
 
-export async function verifyOtp(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const code = clean(formData.get("code"))
-  if (code !== brand.demoOtp) return { error: "That code does not match." }
-  const token = (await cookies()).get("nc_otp")?.value
-  if (!token) return { error: "The verification window closed. Sign in instead." }
-  try {
-    const { payload } = await jwtVerify(token, authSecret())
-    const user = await db.user.findUnique({ where: { id: String(payload.sub || "") } })
-    if (!user) return { error: "Account not found." }
-    await setSession(user)
-    const jar = await cookies()
-    jar.delete("nc_otp")
-    redirect("/")
-  } catch (error) {
-    if (error && typeof error === "object" && "digest" in error) throw error
-    return { error: "The verification window closed. Sign in instead." }
-  }
-}
-
-export async function finishIntro(formData: FormData) {
-  const to = clean(formData.get("to")) || "/"
-  if (formData.get("done") === "1") {
-    const jar = await cookies()
-    jar.set("nc_intro", "1", { path: "/", maxAge: 60 * 60 * 24 * 365 })
-  }
-  redirect(to.startsWith("/") && !to.startsWith("//") ? to : "/")
-}
-
-export async function setLocale(formData: FormData) {
-  const locale = formData.get("locale") === "bn" ? "bn" : "en"
-  const back = clean(formData.get("back")) || "/profile/language"
-  const jar = await cookies()
-  jar.set("nc_locale", locale, { path: "/", maxAge: 60 * 60 * 24 * 365 })
-  redirect(back.startsWith("/") ? back : "/")
-}
-
-export async function markNoticesRead() {
-  const user = await getUser()
-  if (!user) return
-  await db.notice.updateMany({ where: { userId: user.id, channel: "IN_APP" }, data: { read: true } })
-  redirect("/notices")
-}
-
-export async function updateProfile(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const user = await getUser()
-  if (!user) redirect("/login")
-  const name = clean(formData.get("name"))
-  const phone = clean(formData.get("phone"))
-  const password = clean(formData.get("password"))
-  if (name.length < 2) return { error: "Add your name." }
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      name,
-      phone,
-      ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
-    },
-  })
-  redirect("/profile")
-}
-
-export async function applyPartner(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  try {
-    const name = clean(formData.get("owner"))
-    const email = clean(formData.get("email")).toLowerCase()
-    const phone = clean(formData.get("phone"))
-    const password = clean(formData.get("password"))
-    const laundry = clean(formData.get("laundry"))
-    const area = clean(formData.get("area"))
-    const address = clean(formData.get("address"))
-    const categorySlug = clean(formData.get("category"))
-    const nid = clean(formData.get("nid"))
-    if (!name || !laundry || !area || !address) throw new AppError("Fill in the provider details.")
-    if (nid.length < 6) throw new AppError("Add your NID number.")
-    const category = await db.serviceCategory.findUnique({ where: { slug: categorySlug } })
-    if (!category) throw new AppError("Pick a service category.")
-    const areaRow = await db.serviceArea.findFirst({ where: { name: area, active: true } })
-    if (!email.includes("@") || password.length < 6) throw new AppError("Add a valid email and a password of 6+ characters.")
-    if (await db.user.findUnique({ where: { email } })) throw new AppError("That email is already registered.")
-    const settings = await getSettings()
-    const slugBase = laundry.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40) || "laundry"
-    let slug = slugBase
-    if (await db.store.findUnique({ where: { slug } })) slug = `${slugBase}-${Math.floor(Math.random() * 900 + 100)}`
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        phone,
-        passwordHash: await bcrypt.hash(password, 10),
-        role: "STORE",
-        referralCode: `ST${Math.floor(10000 + Math.random() * 90000)}`,
-        wallet: { create: { balance: 0 } },
-        store: {
-          create: {
-            name: laundry,
-            slug,
-            area,
-            address,
-            city: "Cox's Bazar",
-            phone,
-            tagline: "New on Cox's Seba",
-            about: "",
-            lat: areaRow?.lat ?? 21.427,
-            lng: areaRow?.lng ?? 91.98,
-            status: "PENDING",
-            listing: category.laundry ? "LAUNDRY" : "SERVICE",
-            nid,
-            commissionRate: Number(settings.defaultCommission || 12),
-            deliveryFee: Number(settings.defaultDeliveryFee || 60),
-            hue: 250,
-          },
-        },
-      },
-      include: { store: true },
-    })
-    const slots = [
-      ["09:00–11:00", "09:00", "11:00"],
-      ["11:00–13:00", "11:00", "13:00"],
-      ["15:00–17:00", "15:00", "17:00"],
-      ["17:00–19:00", "17:00", "19:00"],
-    ]
-    if (user.store) {
-      await db.providerDocument.create({
-        data: { storeId: user.store.id, kind: "NID", label: "National ID", reference: nid, status: "PENDING" },
-      })
-      await db.providerCategory.create({ data: { storeId: user.store.id, categoryId: category.id } })
-      if (areaRow) await db.providerArea.create({ data: { storeId: user.store.id, areaId: areaRow.id } })
-      const admins = await db.user.findMany({ where: { role: "ADMIN", active: true }, select: { id: true } })
-      const { notify } = await import("@/lib/notify")
-      await Promise.all(admins.map((admin) => notify(admin.id, "Provider waiting", `${laundry} · NID ${nid}`)))
-      await db.timeSlot.createMany({
-        data: slots.map(([label, startTime, endTime]) => ({
-          storeId: user.store!.id,
-          label,
-          startTime,
-          endTime,
-        })),
-      })
+export async function updateProfileAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    const user = await actor(["CUSTOMER", "WORKER", "SUPPORT", "ADMIN"])
+    const input = parse(profileSchema, formObject(form))
+    if (input.email) {
+      const taken = await db.user.findFirst({ where: { email: input.email.toLowerCase(), NOT: { id: user.id } } })
+      if (taken) throw new AppError("এই ইমেইল অন্য অ্যাকাউন্টে আছে।", "That email belongs to another account.")
     }
-    await setSession(user)
-    redirect("/vendor")
-  } catch (error) {
-    if (error && typeof error === "object" && "digest" in error) throw error
-    return { error: error instanceof AppError ? error.message : "Could not submit the laundry." }
-  }
+    if (input.password && input.password.length < 6) throw new AppError("পাসওয়ার্ড অন্তত ৬ অক্ষরের দিন।", "Password must be at least 6 characters.")
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        name: input.name,
+        email: input.email ? input.email.toLowerCase() : user.email,
+        ...(input.password ? { passwordHash: await bcrypt.hash(input.password, 10) } : {}),
+      },
+    })
+    return "প্রোফাইল সেভ হয়েছে।"
+  })
+}
+
+export async function saveAddressAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    const user = await actor(["CUSTOMER"])
+    const input = parse(addressSchema, formObject(form))
+    const area = await sadarArea(input.areaId)
+    const phone = normalisePhone(input.phone)
+    if (!phone) throw new AppError("সঠিক মোবাইল নম্বর দিন।", "Enter a valid mobile number.")
+    const count = await db.address.count({ where: { userId: user.id } })
+    if (count >= 5) throw new AppError("সর্বোচ্চ ৫টা ঠিকানা রাখা যায়।", "You can keep up to 5 addresses.")
+    await db.address.create({
+      data: { userId: user.id, label: input.label || "বাসা", areaId: area.id, line: input.line, landmark: input.landmark, phone, isDefault: count === 0 },
+    })
+    return "ঠিকানা সেভ হয়েছে।"
+  })
+}
+
+export async function deleteAddressAction(form: FormData) {
+  const user = await getUser()
+  const id = String(form.get("id") ?? "")
+  if (user && id) await db.address.deleteMany({ where: { id, userId: user.id } })
+}
+
+export async function markNoticesReadAction() {
+  const user = await getUser()
+  if (user) await db.notice.updateMany({ where: { userId: user.id, read: false }, data: { read: true } })
 }

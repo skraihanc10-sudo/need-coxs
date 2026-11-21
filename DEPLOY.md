@@ -1,90 +1,33 @@
-# Deploy Cox's Seba on Coolify
+# Deploying Cox's Seba on Coolify
 
-Self-hosted Coolify v4 (tested against the v4.7.6 Dockerfile build pack with Traefik). The app is a Next.js standalone server. SQLite lives at `/data/needcoxs.db` so a persistent volume keeps orders across redeploys.
+The app runs as one container built from `Dockerfile`. SQLite and uploaded photos live on a persistent volume at `/data`, so redeploys keep the data.
 
-## Coolify application
+## Coolify application settings
+- **Source:** this repo, branch `main`, build pack **Dockerfile** (`/Dockerfile`, base directory `/`).
+- **Ports Exposes:** `3000` (leave Ports Mappings empty; Traefik routes by domain).
+- **Health check:** path `/api/health` → `{"ok":true,"service":"coxs-seba"}`.
+- **Persistent Storage:** volume `needcoxs-data` → `/data`.
+- **Environment (runtime):**
+  ```
+  DATABASE_URL=file:/data/needcoxs.db
+  AUTH_SECRET=<openssl rand -base64 48>
+  AUTH_URL=https://your-domain            # http://… while on the sslip.io test address
+  AUTH_TRUST_HOST=true
+  NODE_ENV=production
+  PORT=3000
+  HOSTNAME=0.0.0.0
+  SHOW_DEMO_LOGINS=0                      # hide the demo box on /login once real users arrive
+  ```
 
-| Setting | Value |
-| --- | --- |
-| Build pack | Dockerfile |
-| Dockerfile location | `/Dockerfile` (repository root) |
-| Ports Exposes | `3000` |
-| Port mapping | Coolify / Traefik publishes HTTPS. The container listens on 3000. |
-| Health check path | `/api/health` (expects HTTP 200 and JSON `{ "ok": true }`) |
-| Start command | Leave empty. The image entrypoint runs migrations, seeds an empty database, then `node server.js`. |
+## What the container does on start
+`scripts/docker-entrypoint.sh` runs as the `nextjs` user and:
+1. applies Prisma migrations (`prisma migrate deploy`);
+2. seeds demo accounts **only if the database has no users**;
+3. adds any missing Sadar areas, services, FAQs, reply templates and settings (never overwrites admin edits);
+4. starts `node server.js`.
 
-## Persistent volume
+## Updating
+Push to `main`, then press **Redeploy** in Coolify (the GitHub webhook can't reach the panel while port 8000 is closed). The `/data` volume is untouched.
 
-| Volume name | Mount path |
-| --- | --- |
-| `needcoxs-data` | `/data` |
-
-The entrypoint creates `/data` if needed and gives it to the `nextjs` user (uid 1001) before the server starts. Do not mount the volume over `/app`.
-
-Backup the database file:
-
-```text
-/data/needcoxs.db
-```
-
-Copy that file (and `/data/needcoxs.db-journal` if it exists) while the app is stopped, or use `sqlite3 /data/needcoxs.db ".backup /data/needcoxs-backup.db"` from a shell in the container.
-
-## Environment variables
-
-Set these in Coolify. Do not commit real values.
-
-| Variable | Required | Example | Purpose |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | yes | `file:/data/needcoxs.db` | SQLite file on the volume. This is the default if you omit it. |
-| `AUTH_SECRET` | yes | long random string, 32+ characters | Signs session cookies. The container exits if this is missing in production. |
-| `AUTH_URL` | yes | `https://laundry.example.com` | Public origin. Used for redirects and to mark cookies `Secure` when the URL is `https://`. |
-| `AUTH_TRUST_HOST` | yes | `true` | Trust `X-Forwarded-Proto` and `X-Forwarded-Host` from Traefik. |
-| `NODE_ENV` | yes | `production` | Production mode. |
-| `PORT` | yes | `3000` | Must match Ports Exposes. |
-| `HOSTNAME` | yes | `0.0.0.0` | Bind every interface so Traefik can reach the process. |
-
-`SITE_URL` is accepted as an alias of `AUTH_URL` if you already use that name on other apps.
-
-Optional payment keys (the site runs with cash on delivery without them):
-
-- `BKASH_APP_KEY`, `BKASH_APP_SECRET`, `BKASH_USERNAME`, `BKASH_PASSWORD`
-- `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`
-- `STRIPE_SECRET_KEY`
-- `PAYMENTS_WEBHOOK_SECRET`
-
-Generate a secret:
-
-```bash
-openssl rand -base64 32
-```
-
-## First boot
-
-1. `prisma migrate deploy` creates the schema on the empty file.
-2. If the `User` table has no rows, the demo seed runs once.
-3. The catalog step then adds any missing Cox's Bazar categories, areas, and providers. It does not overwrite rows that already exist, so a database that already has users still receives new categories.
-4. Later restarts migrate again, skip the full seed, and leave existing catalog rows in place. Real orders stay on the volume.
-
-Demo logins after the first seed:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Customer | customer@needcoxs.test | customer123 |
-| Laundry | store@needcoxs.test | store123 |
-| Rider | rider@needcoxs.test | rider123 |
-| Admin | admin@needcoxs.test | admin123 |
-| WiFi | wifi@needcoxs.test | wifi123 |
-| Electrician | electric@needcoxs.test | electric123 |
-| Cleaning team | cleaning@needcoxs.test | cleaning123 |
-
-Change these passwords from the admin profile and customer screens after the owner signs in. Passwords are stored as hashes.
-
-## Health check
-
-```text
-GET /api/health
-```
-
-Response: `200` and `{ "ok": true, "service": "need-coxs" }`.
-
-In Coolify, set the health check path to `/api/health` and the port to `3000`.
+## Backups
+The whole state is `/var/lib/docker/volumes/<app>-data/_data/` on the host: `needcoxs.db` plus `uploads/`. Copy that folder.

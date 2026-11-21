@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
 import { authSecret } from "@/lib/secret"
-import { homeFor, routeRole } from "@/lib/roles"
+import { homeFor, routeRoles, type Role } from "@/lib/roles"
 
 function externalOrigin(request: NextRequest) {
   const configured = process.env.AUTH_URL || process.env.SITE_URL
@@ -17,8 +17,8 @@ function externalOrigin(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const needed = routeRole(pathname)
-  if (!needed) return NextResponse.next()
+  const allowed = routeRoles(pathname)
+  if (!allowed) return NextResponse.next()
 
   const token = request.cookies.get("nc_session")?.value
   const login = new URL("/login", externalOrigin(request))
@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, secret)
     const role = String(payload.role || "")
-    if (role !== needed) {
+    if (!allowed.includes(role as Role)) {
       return NextResponse.redirect(new URL(homeFor(role), externalOrigin(request)))
     }
     return NextResponse.next()
@@ -51,29 +51,19 @@ export const config = {
   matcher: [
     "/admin",
     "/admin/:path*",
-    "/vendor",
-    "/vendor/:path*",
-    "/rider",
-    "/rider/:path*",
-    "/orders",
-    "/orders/:path*",
-    "/wallet",
-    "/wallet/:path*",
-    "/checkout",
-    "/checkout/:path*",
+    "/support",
+    "/support/:path*",
+    "/worker",
+    "/worker/:path*",
+    "/bookings",
+    "/bookings/:path*",
+    "/care",
+    "/care/:path*",
+    "/notifications",
+    "/notifications/:path*",
     "/profile",
     "/profile/:path*",
-    "/notices",
-    "/notices/:path*",
-    "/pay",
-    "/pay/:path*",
-    "/cart",
-    "/cart/:path*",
-    "/chat",
-    "/chat/:path*",
-    "/hub/jobs",
-    "/hub/jobs/:path*",
-    "/help",
-    "/help/:path*",
+    "/help/tickets",
+    "/help/tickets/:path*",
   ],
 }

@@ -1,40 +1,37 @@
 /*
-  Cox's Seba theme tokens.
-  Restyle the product by editing this file only, then set <html data-theme="...">.
-  To add the next reference theme, copy the :root block into [data-theme="name"].
-
-  --brand / --primary   strong blue (customer, rider, admin actions)
-  --accent              bright cyan highlights
-  --store-*             laundry partner panel, so that role stays distinct
+  Cox's Seba theme tokens. Restyle the product by editing this file only.
+  The palette follows the Dhopa Bari admin (deep ink, strong blue, soft paper)
+  so the owner's two dashboards feel like one family.
 */
 
 :root,
 [data-theme="default"] {
-  --brand: #1463f3;
-  --brand-hover: #0f52d4;
-  --brand-soft: #e8f1ff;
-  --brand-softer: #f4f7fb;
-  --brand-ink: #10233f;
-  --brand-muted: #6d7690;
-  --accent: #19c3f0;
-  --accent-ink: #08789b;
+  --brand: #1259e8;
+  --brand-hover: #0f4fd0;
+  --brand-deep: #0a3fb0;
+  --brand-soft: #eaf1ff;
+  --brand-softer: #f5f7fb;
+  --brand-ink: #0b1f3a;
+  --brand-muted: #66748f;
+  --accent: #0ea5a0;
+  --accent-ink: #0b6f6b;
+  --teal: #0ea5a0;
+  --teal-soft: #e1f7f4;
+  --amber: #e8a93a;
+  --amber-soft: #fdf3e0;
+  --violet: #7c5cfc;
+  --violet-soft: #efeaff;
   --paper: #ffffff;
-  --canvas: #e7eef8;
-  --line: #e6ebf4;
-  --danger: #e11d48;
-  --ok: #059669;
+  --canvas: #f5f7fb;
+  --line: #e7ebf3;
+  --danger: #e23f4f;
+  --danger-soft: #fce9eb;
+  --ok: #12b886;
+  --ok-soft: #e3f8f0;
   --warn: #d97706;
-  --store-brand: #6d4aff;
-  --store-ink: #1b1433;
-  --store-soft: #f3edff;
   --radius: 1rem;
-  --card-radius: 1.15rem;
-  --control-radius: 999px;
-  --control-height: 3rem;
-  --shell-width: 440px;
-  --nav-offset: 4.75rem;
 
-  --background: var(--brand-softer);
+  --background: var(--canvas);
   --foreground: var(--brand-ink);
   --card: var(--paper);
   --card-foreground: var(--brand-ink);
@@ -52,9 +49,9 @@
   --input: var(--line);
   --ring: var(--brand);
   --chart-1: var(--brand);
-  --chart-2: var(--accent);
+  --chart-2: var(--teal);
   --chart-3: var(--ok);
-  --chart-4: var(--warn);
+  --chart-4: var(--amber);
   --chart-5: var(--danger);
   --sidebar: var(--brand-ink);
   --sidebar-foreground: #f5f8ff;
@@ -64,251 +61,4 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #2a416c;
   --sidebar-ring: var(--accent);
-}
-
-[data-panel="customer"],
-[data-panel="rider"],
-[data-panel="admin"] {
-  --primary: var(--brand);
-  --ring: var(--brand);
-}
-
-[data-panel="store"] {
-  --brand: var(--store-brand);
-  --accent: var(--store-brand);
-  --accent-ink: #4c2ec9;
-  --brand-soft: var(--store-soft);
-  --primary: var(--store-ink);
-  --primary-foreground: #ffffff;
-  --ring: var(--store-brand);
-  --secondary: var(--store-soft);
-  --canvas: #f3effc;
-}
-
-.app-shell {
-  width: 100%;
-  max-width: var(--shell-width);
-  min-height: 100dvh;
-  background: var(--paper);
-  position: relative;
-  box-shadow: inset 0 3px 0 var(--accent);
-}
-
-.desk {
-  min-height: 100dvh;
-  background:
-    radial-gradient(900px 420px at 12% -10%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 60%),
-    var(--canvas);
-}
-
-@media (min-width: 1100px) {
-  .desk {
-    display: grid;
-    grid-template-columns: 1fr var(--shell-width) 1fr;
-  }
-  .desk-side {
-    display: flex;
-  }
-}
-
-.desk-side {
-  display: none;
-  padding: 3rem 2.5rem;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1.25rem;
-}
-
-.stage {
-  min-height: 100dvh;
-  background: var(--canvas);
-  display: flex;
-  justify-content: center;
-}
-
-.surface-card {
-  background: var(--paper);
-  border-radius: var(--card-radius);
-  border: 1px solid var(--line);
-  box-shadow: 0 10px 28px rgba(16, 35, 63, 0.05);
-}
-
-.pill {
-  border-radius: var(--control-radius);
-  min-height: var(--control-height);
-  font-weight: 700;
-}
-
-.hero-banner {
-  background: linear-gradient(135deg, var(--brand) 0%, color-mix(in srgb, var(--accent) 55%, var(--brand)) 100%);
-  color: white;
-  border-radius: calc(var(--card-radius) + 0.25rem);
-}
-
-.icon-chip {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 0.95rem;
-  background: color-mix(in srgb, var(--accent) 18%, white);
-  color: var(--accent-ink);
-}
-
-.price {
-  color: var(--accent-ink);
-  font-weight: 700;
-}
-
-.seg {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-}
-
-.seg a,
-.seg button {
-  border-radius: var(--control-radius);
-  padding: 0.45rem 0.85rem;
-  background: var(--muted);
-  color: var(--brand-ink);
-  font-weight: 650;
-  font-size: 0.82rem;
-  white-space: nowrap;
-}
-
-.seg [data-on="true"] {
-  background: var(--brand);
-  color: white;
-}
-
-.dock {
-  position: sticky;
-  bottom: calc(var(--nav-offset) + 8px);
-  z-index: 20;
-}
-
-.app-shell.bare {
-  --nav-offset: 0px;
-}
-
-.bottom-nav {
-  position: sticky;
-  bottom: 0;
-  z-index: 30;
-  display: grid;
-  background: color-mix(in srgb, var(--paper) 92%, transparent);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--line);
-  padding: 0.35rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
-}
-
-.bottom-nav a {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  font-size: 0.68rem;
-  font-weight: 650;
-  color: var(--brand-muted);
-}
-
-.bottom-nav a[data-on="true"] {
-  color: var(--brand);
-}
-
-.admin {
-  min-height: 100dvh;
-  background: var(--brand-softer);
-}
-
-@media (min-width: 960px) {
-  .admin {
-    display: grid;
-    grid-template-columns: 232px 1fr;
-  }
-}
-
-.admin-side {
-  background: var(--brand-ink);
-  color: white;
-}
-
-.bar {
-  width: 100%;
-  border-radius: 8px 8px 3px 3px;
-  background: linear-gradient(180deg, var(--accent), var(--brand));
-}
-
-.site-wrap {
-  width: min(1120px, calc(100% - 2rem));
-  margin-inline: auto;
-}
-
-.site-top {
-  background: var(--brand-ink);
-  color: white;
-  font-size: 0.8rem;
-}
-
-.site-hero {
-  background:
-    radial-gradient(520px 280px at 85% 20%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%),
-    linear-gradient(160deg, var(--brand-ink) 0%, var(--brand) 58%, color-mix(in srgb, var(--accent) 35%, var(--brand)) 100%);
-  color: white;
-}
-
-/* Public marketing site. App panels do not use these variables. */
-.public-site {
-  --pub-green: #00b45a;
-  --pub-green-dark: #00924a;
-  --pub-yellow: #f6c445;
-  --pub-navy: #1f3a47;
-  --pub-ink: #16313c;
-  --pub-muted: #6b7c86;
-  --pub-line: #e6ecee;
-  --pub-card: #f4f7f8;
-  background: #fff;
-  color: var(--pub-ink);
-  font-family: var(--font-open), var(--font-bengali), sans-serif;
-}
-
-.public-site h1,
-.public-site h2,
-.public-site h3,
-.public-site .display {
-  font-family: var(--font-display), var(--font-bengali), sans-serif;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  animation: rise 0.7s ease forwards;
-}
-.reveal-late { animation-delay: 0.15s; }
-@keyframes rise {
-  to { opacity: 1; transform: none; }
-}
-
-.pub-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 48px;
-  padding: 0 1.4rem;
-  background: var(--pub-green);
-  color: white;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.82rem;
-}
-.pub-btn:hover { background: var(--pub-green-dark); }
-.pub-btn.ghost {
-  background: transparent;
-  border: 2px solid white;
 }

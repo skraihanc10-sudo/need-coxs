@@ -1,3 +1,6 @@
+// Cox's Seba — one company, our own field team, Cox's Bazar Sadar only.
+// Roles: CUSTOMER, WORKER, SUPPORT, ADMIN. Money is whole BDT (৳).
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,579 +13,257 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   name         String
-  email        String   @unique
-  phone        String   @default("")
-  passwordHash String
-  role         String
-  referralCode String   @unique
-  referredById String?
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  role         String   @default("CUSTOMER")
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  store      Store?
-  rider      DeliveryProfile?
-  addresses  Address[]
-  cartItems  CartItem[]
-  orders     Order[]           @relation("CustomerOrders")
-  reviews    Review[]
-  wallet     Wallet?
-  walletTxns WalletTxn[]
-  notices    Notice[]
-  events     OrderEvent[]
-  payouts    Payout[]          @relation("PayoutActor")
-  thread     Thread?
-  messages   Message[]
-  serviceBookings ServiceBooking[] @relation("BookingCustomer")
-  serviceReviews  ServiceReview[]
-  bookingEvents   ServiceBookingEvent[]
-  tickets         Ticket[]
-  ticketMessages  TicketMessage[]
-  bookingChats    BookingChatMessage[]
+  worker         WorkerProfile?
+  addresses      Address[]
+  bookings       ServiceBooking[]     @relation("BookingCustomer")
+  bookingEvents  BookingEvent[]
+  bookingPhotos  BookingPhoto[]
+  reviews        BookingReview[]
+  bookingChats   BookingChatMessage[]
+  careThread     CareThread?          @relation("CareCustomer")
+  careAssigned   CareThread[]         @relation("CareAssignee")
+  careMessages   CareMessage[]
+  tickets        Ticket[]             @relation("TicketOwner")
+  ticketsAssigned Ticket[]            @relation("TicketAssignee")
+  ticketMessages TicketMessage[]
+  notices        Notice[]
 }
 
-model Store {
-  id             String   @id @default(cuid())
-  ownerId        String   @unique
-  owner          User     @relation(fields: [ownerId], references: [id])
-  name           String
-  slug           String   @unique
-  tagline        String   @default("")
-  about          String   @default("")
-  area           String
-  address        String
-  city           String   @default("Dhaka")
-  lat            Float
-  lng            Float
-  phone          String
-  hue            Int      @default(210)
-  cover          String   @default("")
-  logo           String   @default("")
-  status         String   @default("PENDING")
-  commissionRate Float    @default(12)
-  rating         Float    @default(0)
-  reviewCount    Int      @default(0)
-  openTime       String   @default("08:00")
-  closeTime      String   @default("21:00")
-  deliveryFee    Int      @default(60)
-  minOrder       Int      @default(150)
-  listing        String   @default("LAUNDRY")
-  providerType   String   @default("COMPANY")
-  teamSize       Int      @default(1)
-  nid            String   @default("")
-  tradeLicense   String   @default("")
-  createdAt      DateTime @default(now())
+/// A field worker on our own team. One user can hold several skills.
+model WorkerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo       String   @default("")
+  nid         String   @default("")
+  nidPhoto    String   @default("")
+  isRider     Boolean  @default(false)
+  available   Boolean  @default(true)
+  rating      Float    @default(0)
+  ratingCount Int      @default(0)
+  joinedAt    DateTime @default(now())
 
-  prices  Price[]
-  slots   TimeSlot[]
-  orders  Order[]
-  reviews Review[]
-  payouts Payout[]
-  riders  DeliveryProfile[]
-  coupons Coupon[]
-  faqs       Faq[]
-  gallery    GalleryItem[]
-  categories StoreCategory[]
-  attributes ProductAttribute[]
-  providerCategories ProviderCategory[]
-  providerAreas      ProviderArea[]
-  documents          ProviderDocument[]
-  serviceBookings    ServiceBooking[]
-  serviceReviews     ServiceReview[]
+  skills   WorkerSkill[]
+  areas    WorkerArea[]
+  bookings ServiceBooking[]
+  reviews  BookingReview[]
 }
 
-model Item {
-  id       String  @id @default(cuid())
-  audience String
-  name     String
-  nameBn   String
-  unit     String
-  unitBn   String
-  sort     Int     @default(0)
-  active   Boolean @default(true)
-  prices   Price[]
+model WorkerSkill {
+  workerId   String
+  worker     WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([workerId, categoryId])
 }
 
-model Kind {
+model WorkerArea {
+  workerId String
+  worker   WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  areaId   String
+  area     ServiceArea   @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([workerId, areaId])
+}
+
+/// Only Cox's Bazar Sadar areas live here. A booking must point at an active row.
+model ServiceArea {
   id     String  @id @default(cuid())
   slug   String  @unique
   name   String
   nameBn String
+  charge Int     @default(0)
   sort   Int     @default(0)
-  prices Price[]
-}
-
-model Price {
-  id        String     @id @default(cuid())
-  storeId   String
-  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  itemId    String
-  item      Item       @relation(fields: [itemId], references: [id])
-  kindId    String
-  kind      Kind       @relation(fields: [kindId], references: [id])
-  amount    Int
-  active    Boolean    @default(true)
-  cartItems CartItem[]
-
-  @@unique([storeId, itemId, kindId])
-}
-
-model TimeSlot {
-  id        String  @id @default(cuid())
-  storeId   String
-  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  label     String
-  startTime String
-  endTime   String
-  capacity  Int     @default(10)
-  active    Boolean @default(true)
-}
-
-model Address {
-  id        String  @id @default(cuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label     String
-  line1     String
-  area      String
-  city      String  @default("Dhaka")
-  phone     String
-  lat       Float?
-  lng       Float?
-  isDefault Boolean @default(false)
-  orders    Order[]
-}
-
-model CartItem {
-  id       String @id @default(cuid())
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  priceId  String
-  price    Price  @relation(fields: [priceId], references: [id], onDelete: Cascade)
-  quantity Int    @default(1)
-
-  @@unique([userId, priceId])
-}
-
-model Coupon {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  title       String
-  detail      String    @default("")
-  type        String
-  value       Int
-  minOrder    Int       @default(0)
-  maxDiscount Int?
-  storeId     String?
-  store       Store?    @relation(fields: [storeId], references: [id])
-  active      Boolean   @default(true)
-  expiresAt   DateTime?
-  usageLimit  Int?
-  usedCount   Int       @default(0)
-  orders      Order[]
-}
-
-model Order {
-  id              String   @id @default(cuid())
-  code            String   @unique
-  customerId      String
-  customer        User     @relation("CustomerOrders", fields: [customerId], references: [id])
-  storeId         String
-  store           Store    @relation(fields: [storeId], references: [id])
-  addressId       String?
-  address         Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  addressSnapshot String
-  pickupDate      String
-  pickupSlot      String
-  deliveryDate    String
-  deliverySlot    String
-  status          String   @default("PENDING")
-  paymentMethod   String
-  paymentStatus   String   @default("UNPAID")
-  subtotal        Int
-  deliveryFee     Int
-  discount        Int      @default(0)
-  walletUsed      Int      @default(0)
-  total           Int
-  couponId        String?
-  coupon          Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  couponCode      String?
-  preference      String   @default("Regular")
-  notes           String   @default("")
-  cancelReason    String?
-  riderId         String?
-  rider           DeliveryProfile? @relation(fields: [riderId], references: [id], onDelete: SetNull)
-  commissionRate  Float    @default(0)
-  commissionAmt   Int      @default(0)
-  storeEarning    Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  items   OrderItem[]
-  events  OrderEvent[]
-  review  Review?
-  payment Payment?
-
-  @@index([customerId])
-  @@index([storeId, status])
-  @@index([riderId])
-}
-
-model OrderItem {
-  id       String  @id @default(cuid())
-  orderId  String
-  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  name     String
-  kind     String
-  unit     String
-  price    Int
-  quantity Int
-}
-
-model OrderEvent {
-  id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status    String
-  note      String   @default("")
-  actorId   String?
-  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-}
-
-model DeliveryProfile {
-  id        String  @id @default(cuid())
-  userId    String  @unique
-  user      User    @relation(fields: [userId], references: [id])
-  storeId   String?
-  store     Store?  @relation(fields: [storeId], references: [id])
-  vehicle   String
-  zone      String
-  trade     String  @default("RIDER")
-  available Boolean @default(true)
-  orders    Order[]
-  fieldJobs ServiceBooking[]
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  orderId    String   @unique
-  order      Order    @relation(fields: [orderId], references: [id])
-  customerId String
-  customer   User     @relation(fields: [customerId], references: [id])
-  storeId    String
-  store      Store    @relation(fields: [storeId], references: [id])
-  rating     Int
-  comment    String
-  createdAt  DateTime @default(now())
-}
-
-model Wallet {
-  id      String @id @default(cuid())
-  userId  String @unique
-  user    User   @relation(fields: [userId], references: [id])
-  balance Int    @default(0)
-}
-
-model WalletTxn {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Int
-  type      String
-  note      String
-  createdAt DateTime @default(now())
-}
-
-model Payment {
-  id        String   @id @default(cuid())
-  orderId   String   @unique
-  order     Order    @relation(fields: [orderId], references: [id])
-  provider  String
-  amount    Int
-  status    String
-  reference String?
-  detail    String   @default("")
-  createdAt DateTime @default(now())
-}
-
-model Banner {
-  id         String  @id @default(cuid())
-  title      String
-  titleBn    String
-  subtitle   String
-  subtitleBn String
-  href       String
-  active     Boolean @default(true)
-  sort       Int     @default(0)
-}
-
-model Payout {
-  id        String   @id @default(cuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
-  amount    Int
-  method    String
-  account   String
-  status    String   @default("REQUESTED")
-  note      String   @default("")
-  actorId   String?
-  actor     User?    @relation("PayoutActor", fields: [actorId], references: [id])
-  createdAt DateTime @default(now())
-}
-
-model Faq {
-  id       String  @id @default(cuid())
-  storeId  String?
-  store    Store?  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  question String
-  answer   String
-  sort     Int     @default(0)
-}
-
-model Setting {
-  key   String @id
-  value String
-}
-
-model Notice {
-  id        String   @id @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  channel   String
-  title     String
-  body      String
-  status    String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
-model Thread {
-  id         String    @id @default(cuid())
-  customerId String    @unique
-  customer   User      @relation(fields: [customerId], references: [id])
-  updatedAt  DateTime  @updatedAt
-  createdAt  DateTime  @default(now())
-  messages   Message[]
-}
-
-model Subscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-}
-
-model DeliveryZone {
-  id     String  @id @default(cuid())
-  name   String
-  area   String
-  fee    Int
   active Boolean @default(true)
-}
 
-model CmsPage {
-  id        String  @id @default(cuid())
-  slug      String  @unique
-  title     String
-  body      String
-  published Boolean @default(true)
-}
-
-model GalleryItem {
-  id      String @id @default(cuid())
-  storeId String
-  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  caption String
-  image   String
-}
-
-model StoreCategory {
-  id      String @id @default(cuid())
-  storeId String
-  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name    String
-}
-
-model ProductAttribute {
-  id      String @id @default(cuid())
-  storeId String
-  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name    String
-  value   String
-}
-
-model Inquiry {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String   @default("")
-  topic     String   @default("Pickup")
-  message   String
-  createdAt DateTime @default(now())
-}
-
-model ServiceArea {
-  id       String  @id @default(cuid())
-  slug     String  @unique
-  name     String
-  nameBn   String
-  lat      Float   @default(21.427)
-  lng      Float   @default(91.98)
-  sort     Int     @default(0)
-  active   Boolean @default(true)
-
-  providers ProviderArea[]
+  workers   WorkerArea[]
   bookings  ServiceBooking[]
+  addresses Address[]
 }
 
 model ServiceCategory {
-  id             String  @id @default(cuid())
-  slug           String  @unique
-  name           String
-  nameBn         String
-  blurb          String  @default("")
-  blurbBn        String  @default("")
-  icon           String  @default("spark")
-  cover          String  @default("")
-  commissionRate Float   @default(12)
-  laundry        Boolean @default(false)
-  sort           Int     @default(0)
-  active         Boolean @default(true)
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  name    String
+  nameBn  String
+  blurb   String  @default("")
+  blurbBn String  @default("")
+  icon    String  @default("spark")
+  image   String  @default("")
+  /// STANDARD visit, LAUNDRY pickup/delivery, TEAM (resort crews), CUSTOM ("write your job").
+  flow    String  @default("STANDARD")
+  sort    Int     @default(0)
+  active  Boolean @default(true)
 
   offerings ServiceOffering[]
-  providers ProviderCategory[]
+  workers   WorkerSkill[]
   bookings  ServiceBooking[]
 }
 
 model ServiceOffering {
-  id         String          @id @default(cuid())
-  categoryId String
-  category   ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  slug       String
-  name       String
-  nameBn     String
-  detail     String          @default("")
-  detailBn   String          @default("")
-  pricing    String          @default("FIXED")
-  price      Int             @default(0)
-  unit       String          @default("visit")
-  unitBn     String          @default("ভিজিট")
-  bulk       Boolean         @default(false)
-  sort       Int             @default(0)
-  active     Boolean         @default(true)
-  bookings   ServiceBooking[]
+  id          String          @id @default(cuid())
+  categoryId  String
+  category    ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  nameBn      String
+  detail      String          @default("")
+  detailBn    String          @default("")
+  /// FIXED, PER_KG, PER_ITEM, PER_HOUR, PER_ROOM, QUOTE (inspection then quote)
+  pricing     String          @default("FIXED")
+  /// For QUOTE this is the inspection fee.
+  price       Int             @default(0)
+  minQty      Int             @default(1)
+  durationMin Int             @default(60)
+  image       String          @default("")
+  sort        Int             @default(0)
+  active      Boolean         @default(true)
+  bookings    ServiceBooking[]
 
   @@unique([categoryId, slug])
 }
 
-model ProviderCategory {
-  id         String          @id @default(cuid())
-  storeId    String
-  store      Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  categoryId String
-  category   ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@unique([storeId, categoryId])
-}
-
-model ProviderArea {
-  id      String      @id @default(cuid())
-  storeId String
-  store   Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  areaId  String
-  area    ServiceArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
-
-  @@unique([storeId, areaId])
-}
-
-model ProviderDocument {
-  id        String @id @default(cuid())
-  storeId   String
-  store     Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  kind      String
-  label     String
-  reference String
-  status    String @default("PENDING")
+model Address {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String      @default("বাসা")
+  areaId    String
+  area      ServiceArea @relation(fields: [areaId], references: [id])
+  line      String
+  landmark  String      @default("")
+  phone     String
+  isDefault Boolean     @default(false)
+  createdAt DateTime    @default(now())
 }
 
 model ServiceBooking {
-  id              String           @id @default(cuid())
-  code            String           @unique
-  customerId      String
-  customer        User             @relation("BookingCustomer", fields: [customerId], references: [id])
-  storeId         String
-  store           Store            @relation(fields: [storeId], references: [id])
-  categoryId      String
-  category        ServiceCategory  @relation(fields: [categoryId], references: [id])
-  offeringId      String
-  offering        ServiceOffering  @relation(fields: [offeringId], references: [id])
-  areaId          String?
-  area            ServiceArea?     @relation(fields: [areaId], references: [id])
-  addressLine     String
-  lat             Float?
-  lng             Float?
-  visitDate       String
-  visitSlot       String
-  endDate         String           @default("")
-  notes           String           @default("")
-  photos          String           @default("")
-  pricing         String
-  price           Int              @default(0)
-  quoteAmount     Int?
-  rooms           Int              @default(0)
-  teamSize        Int              @default(1)
-  days            Int              @default(1)
-  status          String           @default("REQUESTED")
-  paymentMethod   String           @default("CASH")
-  paymentStatus   String           @default("UNPAID")
-  commissionRate  Float            @default(0)
-  commissionAmt   Int              @default(0)
-  providerEarning Int              @default(0)
-  workerId        String?
-  worker          DeliveryProfile? @relation(fields: [workerId], references: [id], onDelete: SetNull)
-  cancelReason    String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String          @id @default(cuid())
+  code          String          @unique
+  customerId    String
+  customer      User            @relation("BookingCustomer", fields: [customerId], references: [id])
+  categoryId    String
+  category      ServiceCategory @relation(fields: [categoryId], references: [id])
+  offeringId    String
+  offering      ServiceOffering @relation(fields: [offeringId], references: [id])
+  areaId        String
+  area          ServiceArea     @relation(fields: [areaId], references: [id])
+  addressLine   String
+  landmark      String          @default("")
+  phone         String
+  contactName   String          @default("")
+  visitDate     String
+  visitSlot     String
+  notes         String          @default("")
+  pricing       String
+  unitPrice     Int             @default(0)
+  quantity      Float           @default(1)
+  teamSize      Int             @default(1)
+  days          Int             @default(1)
+  visitCharge   Int             @default(0)
+  estimatedPrice Int            @default(0)
+  quoteAmount   Int?
+  /// NONE, SENT, ACCEPTED, DECLINED
+  quoteStatus   String          @default("NONE")
+  quoteNote     String          @default("")
+  finalPrice    Int?
+  /// CASH, BKASH, NAGAD
+  paymentMethod String          @default("CASH")
+  /// UNPAID, PAID
+  paymentStatus String          @default("UNPAID")
+  status        String          @default("REQUESTED")
+  workerId      String?
+  worker        WorkerProfile?  @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  cancelReason  String          @default("")
+  refundNote    String          @default("")
+  adminNote     String          @default("")
+  rescheduled   Int             @default(0)
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  events ServiceBookingEvent[]
-  review ServiceReview?
-  chat   BookingThread?
+  events   BookingEvent[]
+  photos   BookingPhoto[]
+  review   BookingReview?
+  chat     BookingThread?
+  payments PaymentRecord[]
+  tickets  Ticket[]
 
   @@index([customerId])
-  @@index([storeId, status])
-  @@index([workerId])
+  @@index([workerId, status])
+  @@index([status, visitDate])
   @@index([categoryId])
+  @@index([areaId])
 }
 
-model ServiceBookingEvent {
-  id        String         @id @default(cuid())
-  bookingId String
-  booking   ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  status    String
-  note      String         @default("")
-  actorId   String?
-  actor     User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  createdAt DateTime       @default(now())
+/// Every status change: who, when, from what, to what.
+model BookingEvent {
+  id         String         @id @default(cuid())
+  bookingId  String
+  booking    ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fromStatus String         @default("")
+  toStatus   String
+  note       String         @default("")
+  actorId    String?
+  actor      User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorRole  String         @default("")
+  createdAt  DateTime       @default(now())
+
+  @@index([bookingId, createdAt])
 }
 
-model ServiceReview {
+model BookingPhoto {
+  id           String         @id @default(cuid())
+  bookingId    String
+  booking      ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  /// CUSTOMER, BEFORE, AFTER
+  kind         String
+  path         String
+  uploadedById String?
+  uploadedBy   User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+}
+
+model BookingReview {
   id         String         @id @default(cuid())
   bookingId  String         @unique
   booking    ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   customerId String
   customer   User           @relation(fields: [customerId], references: [id])
-  storeId    String
-  store      Store          @relation(fields: [storeId], references: [id])
+  workerId   String?
+  worker     WorkerProfile? @relation(fields: [workerId], references: [id], onDelete: SetNull)
   rating     Int
   comment    String
+  published  Boolean        @default(true)
   createdAt  DateTime       @default(now())
 }
 
-model BookingThread {
+model PaymentRecord {
   id        String         @id @default(cuid())
-  bookingId String         @unique
+  bookingId String
   booking   ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  updatedAt DateTime       @updatedAt
+  provider  String
+  amount    Int
+  /// RECORDED now; a real gateway can add PENDING / FAILED later.
+  status    String         @default("RECORDED")
+  reference String         @default("")
   createdAt DateTime       @default(now())
+}
+
+model BookingThread {
+  id        String               @id @default(cuid())
+  bookingId String               @unique
+  booking   ServiceBooking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  updatedAt DateTime             @updatedAt
+  createdAt DateTime             @default(now())
   messages  BookingChatMessage[]
   reads     BookingThreadRead[]
 }
@@ -608,17 +289,63 @@ model BookingThreadRead {
   @@id([threadId, userId])
 }
 
+/// Customer care chat, one per customer, not tied to a booking.
+model CareThread {
+  id         String        @id @default(cuid())
+  customerId String        @unique
+  customer   User          @relation("CareCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  assignee   User?         @relation("CareAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  status     String        @default("OPEN")
+  updatedAt  DateTime      @updatedAt
+  createdAt  DateTime      @default(now())
+  messages   CareMessage[]
+  reads      CareRead[]
+}
+
+model CareMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    CareThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User       @relation(fields: [senderId], references: [id])
+  body      String
+  createdAt DateTime   @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+model CareRead {
+  threadId String
+  thread   CareThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId   String
+  readAt   DateTime   @default(now())
+
+  @@id([threadId, userId])
+}
+
 model Ticket {
-  id        String          @id @default(cuid())
-  code      String          @unique
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
-  subject   String
-  status    String          @default("OPEN")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  messages  TicketMessage[]
-  reads     TicketRead[]
+  id         String          @id @default(cuid())
+  code       String          @unique
+  userId     String
+  user       User            @relation("TicketOwner", fields: [userId], references: [id])
+  bookingId  String?
+  booking    ServiceBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  subject    String
+  /// COMPLAINT, REFUND, WORKER, OTHER
+  category   String          @default("OTHER")
+  /// LOW, NORMAL, HIGH, URGENT
+  priority   String          @default("NORMAL")
+  /// OPEN, PENDING, RESOLVED, CLOSED
+  status     String          @default("OPEN")
+  assigneeId String?
+  assignee   User?           @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  messages   TicketMessage[]
+  reads      TicketRead[]
+
+  @@index([status, priority])
 }
 
 model TicketMessage {
@@ -640,12 +367,52 @@ model TicketRead {
   @@id([ticketId, userId])
 }
 
-model Message {
+/// Ready-made replies for the support inbox.
+model ReplyTemplate {
+  id     String @id @default(cuid())
+  title  String
+  body   String
+  sort   Int    @default(0)
+}
+
+model Notice {
   id        String   @id @default(cuid())
-  threadId  String
-  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  senderId  String
-  sender    User     @relation(fields: [senderId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   @default("INFO")
+  title     String
   body      String
+  link      String   @default("")
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+/// One-time codes for phone sign-in. Only a hash of the code is stored.
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Faq {
+  id         String  @id @default(cuid())
+  question   String
+  questionBn String
+  answer     String
+  answerBn   String
+  sort       Int     @default(0)
+  active     Boolean @default(true)
+}
+
+model Setting {
+  key   String @id
+  value String
 }

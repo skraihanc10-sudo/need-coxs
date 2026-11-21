@@ -1,294 +1,237 @@
 "use server"
 
-import bcrypt from "bcryptjs"
-import { redirect, unstable_rethrow } from "next/navigation"
-import { db } from "@/lib/db"
-import { getUser } from "@/lib/auth"
-import { AppError } from "@/lib/errors"
-import { transitionOrder } from "@/lib/orders"
-import { saveSettings, SETTING_DEFAULTS } from "@/lib/settings"
 import { revalidatePath } from "next/cache"
+import bcrypt from "bcryptjs"
+import { db } from "@/lib/db"
+import { AppError } from "@/lib/errors"
+import { run, type ActionState } from "@/lib/action"
+import { actor } from "@/lib/auth"
+import { normalisePhone } from "@/lib/format"
+import { saveImages } from "@/lib/uploads"
+import { saveSettings, SETTING_KEYS } from "@/lib/settings"
+import { areaSchema, categorySchema, faqSchema, formObject, offeringSchema, parse, staffSchema, templateSchema, workerSchema } from "@/lib/validation"
 
-async function admin() {
-  const user = await getUser()
-  if (!user || user.role !== "ADMIN") redirect("/login")
-  return user
+const done = (path = "/admin") => {
+  revalidatePath(path, "layout")
+  revalidatePath("/", "layout")
 }
 
-function fail(path: string, error: unknown): never {
-  unstable_rethrow(error)
-  const message = error instanceof AppError ? error.message : "Something went wrong."
-  redirect(`${path}?error=${encodeURIComponent(message)}`)
+// ── Services ───────────────────────────────────────────────────────────────
+
+export async function saveCategoryAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const { id, ...data } = parse(categorySchema, formObject(form))
+    const clash = await db.serviceCategory.findFirst({ where: { slug: data.slug, NOT: id ? { id } : undefined } })
+    if (clash) throw new AppError("এই স্লাগ আগে থেকে আছে।", "That slug is already used.")
+    const image = (await saveImages(form.getAll("imageFile"), 1))[0]
+    const payload = { ...data, ...(image ? { image: `/api/uploads/${image}` } : {}) }
+    if (id) await db.serviceCategory.update({ where: { id }, data: payload })
+    else await db.serviceCategory.create({ data: payload })
+    done()
+    return "সেবা সেভ হয়েছে।"
+  })
 }
 
-export async function setStoreStatus(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const status = String(formData.get("status") || "APPROVED")
-  await db.store.update({ where: { id }, data: { status } })
-  redirect("/admin/stores")
+export async function toggleCategoryAction(form: FormData) {
+  await actor(["ADMIN"])
+  const id = String(form.get("id") ?? "")
+  const row = await db.serviceCategory.findUnique({ where: { id } })
+  if (row) await db.serviceCategory.update({ where: { id }, data: { active: !row.active } })
+  done()
 }
 
-export async function setCommission(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const commissionRate = Number(formData.get("rate") || 0)
-  await db.store.update({ where: { id }, data: { commissionRate } })
-  redirect("/admin/stores?ok=1")
+export async function saveOfferingAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const { id, ...data } = parse(offeringSchema, formObject(form))
+    const clash = await db.serviceOffering.findFirst({ where: { categoryId: data.categoryId, slug: data.slug, NOT: id ? { id } : undefined } })
+    if (clash) throw new AppError("এই সেবায় এই স্লাগ আগে থেকে আছে।", "That slug already exists in this service.")
+    if (id) await db.serviceOffering.update({ where: { id }, data })
+    else await db.serviceOffering.create({ data })
+    done()
+    return "সাব-সার্ভিস সেভ হয়েছে।"
+  })
 }
 
-export async function adminSetStatus(formData: FormData) {
-  const user = await admin()
-  const id = String(formData.get("id") || "")
-  const to = String(formData.get("status") || "")
-  const riderProfileId = String(formData.get("riderId") || "") || undefined
-  try {
-    await transitionOrder({
-      orderId: id,
-      actorId: user.id,
-      to,
-      riderProfileId,
-      note: "Updated from the admin desk",
+export async function toggleOfferingAction(form: FormData) {
+  await actor(["ADMIN"])
+  const id = String(form.get("id") ?? "")
+  const row = await db.serviceOffering.findUnique({ where: { id } })
+  if (row) await db.serviceOffering.update({ where: { id }, data: { active: !row.active } })
+  done()
+}
+
+// ── Areas ──────────────────────────────────────────────────────────────────
+
+export async function saveAreaAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const { id, ...data } = parse(areaSchema, formObject(form))
+    const clash = await db.serviceArea.findFirst({ where: { slug: data.slug, NOT: id ? { id } : undefined } })
+    if (clash) throw new AppError("এই স্লাগ আগে থেকে আছে।", "That slug is already used.")
+    if (id) await db.serviceArea.update({ where: { id }, data })
+    else await db.serviceArea.create({ data })
+    done()
+    return "এলাকা সেভ হয়েছে।"
+  })
+}
+
+export async function toggleAreaAction(form: FormData) {
+  await actor(["ADMIN"])
+  const id = String(form.get("id") ?? "")
+  const row = await db.serviceArea.findUnique({ where: { id } })
+  if (row) await db.serviceArea.update({ where: { id }, data: { active: !row.active } })
+  done()
+}
+
+// ── Workers ────────────────────────────────────────────────────────────────
+
+export async function saveWorkerAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const raw = formObject(form)
+    const input = parse(workerSchema, {
+      ...raw,
+      skills: form.getAll("skills"),
+      areas: form.getAll("areas"),
     })
-  } catch (error) {
-    fail(`/admin/orders/${id}`, error)
-  }
-  redirect(`/admin/orders/${id}`)
-}
+    const phone = normalisePhone(input.phone)
+    if (!phone) throw new AppError("সঠিক মোবাইল নম্বর দিন।", "Enter a valid mobile number.")
+    const email = input.email ? input.email.toLowerCase() : null
+    const [photo] = await saveImages(form.getAll("photoFile"), 1)
+    const [nidPhoto] = await saveImages(form.getAll("nidFile"), 1)
 
-export async function createRider(formData: FormData) {
-  await admin()
-  const name = String(formData.get("name") || "").trim()
-  const email = String(formData.get("email") || "").trim().toLowerCase()
-  const phone = String(formData.get("phone") || "").trim()
-  const password = String(formData.get("password") || "")
-  const vehicle = String(formData.get("vehicle") || "Bike")
-  const zone = String(formData.get("zone") || "Dhaka")
-  const storeId = String(formData.get("storeId") || "") || null
-  if (!name || !email.includes("@") || password.length < 6) {
-    redirect("/admin/riders?error=Name%2C%20email%20and%20a%206%2B%20character%20password%20are%20required.")
-  }
-  await db.user.create({
-    data: {
-      name,
-      email,
-      phone,
-      passwordHash: await bcrypt.hash(password, 10),
-      role: "DELIVERY",
-      referralCode: `RD${Math.floor(10000 + Math.random() * 90000)}`,
-      wallet: { create: { balance: 0 } },
-      rider: { create: { vehicle, zone, storeId } },
-    },
-  })
-  redirect("/admin/riders?ok=1")
-}
-
-export async function toggleUser(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const user = await db.user.findUnique({ where: { id } })
-  if (user && user.role !== "ADMIN") {
-    await db.user.update({ where: { id }, data: { active: !user.active } })
-  }
-  redirect(String(formData.get("back") || "/admin/customers"))
-}
-
-export async function setUserPassword(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const password = String(formData.get("password") || "")
-  if (password.length < 6) redirect("/admin/customers?error=Use%206%2B%20characters.")
-  await db.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(password, 10) } })
-  redirect("/admin/customers?ok=1")
-}
-
-export async function adjustWallet(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const amount = Math.round(Number(formData.get("amount") || 0))
-  const note = String(formData.get("note") || "Adjusted by Cox's Seba")
-  if (!amount) redirect("/admin/customers?error=Enter%20an%20amount.")
-  await db.wallet.upsert({
-    where: { userId: id },
-    update: { balance: { increment: amount } },
-    create: { userId: id, balance: Math.max(0, amount) },
-  })
-  await db.walletTxn.create({
-    data: { userId: id, amount, type: amount > 0 ? "CREDIT" : "DEBIT", note },
-  })
-  redirect("/admin/customers?ok=1")
-}
-
-export async function saveBanner(formData: FormData) {
-  await admin()
-  await db.banner.create({
-    data: {
-      title: String(formData.get("title") || ""),
-      titleBn: String(formData.get("titleBn") || ""),
-      subtitle: String(formData.get("subtitle") || ""),
-      subtitleBn: String(formData.get("subtitleBn") || ""),
-      href: String(formData.get("href") || "/offers"),
-      sort: Number(formData.get("sort") || 0),
-    },
-  })
-  redirect("/admin/banners")
-}
-
-export async function toggleBanner(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const banner = await db.banner.findUnique({ where: { id } })
-  if (banner) await db.banner.update({ where: { id }, data: { active: !banner.active } })
-  redirect("/admin/banners")
-}
-
-export async function deleteBanner(formData: FormData) {
-  await admin()
-  await db.banner.delete({ where: { id: String(formData.get("id") || "") } })
-  redirect("/admin/banners")
-}
-
-export async function saveAdminCoupon(formData: FormData) {
-  await admin()
-  await db.coupon.create({
-    data: {
-      code: String(formData.get("code") || "").trim().toUpperCase(),
-      title: String(formData.get("title") || "").trim(),
-      detail: String(formData.get("detail") || ""),
-      type: String(formData.get("type") || "FIXED"),
-      value: Math.round(Number(formData.get("value") || 0)),
-      minOrder: Math.round(Number(formData.get("minOrder") || 0)),
-      maxDiscount: formData.get("maxDiscount") ? Math.round(Number(formData.get("maxDiscount"))) : null,
-      storeId: String(formData.get("storeId") || "") || null,
-    },
-  })
-  redirect("/admin/coupons")
-}
-
-export async function saveFaq(formData: FormData) {
-  await admin()
-  await db.faq.create({
-    data: {
-      question: String(formData.get("question") || ""),
-      answer: String(formData.get("answer") || ""),
-    },
-  })
-  redirect("/admin/faqs")
-}
-
-export async function deleteAdminFaq(formData: FormData) {
-  await admin()
-  await db.faq.delete({ where: { id: String(formData.get("id") || "") } })
-  redirect("/admin/faqs")
-}
-
-export async function markPayout(formData: FormData) {
-  const user = await admin()
-  const id = String(formData.get("id") || "")
-  const status = String(formData.get("status") || "PAID")
-  await db.payout.update({
-    where: { id },
-    data: { status, actorId: user.id, note: status === "PAID" ? "Paid by Cox's Seba" : "Rejected" },
-  })
-  redirect("/admin/payouts")
-}
-
-export async function saveGeneralSettings(formData: FormData) {
-  await admin()
-  const entries: Record<string, string> = {}
-  for (const key of Object.keys(SETTING_DEFAULTS)) {
-    if (key.startsWith("notify") || key.startsWith("pay")) {
-      entries[key] = formData.get(key) === "on" ? "1" : "0"
-    } else if (formData.has(key)) {
-      entries[key] = String(formData.get(key) ?? "")
+    let userId: string
+    if (input.id) {
+      const profile = await db.workerProfile.findUnique({ where: { id: input.id } })
+      if (!profile) throw new AppError("কর্মী পাওয়া যায়নি।", "Worker not found.")
+      userId = profile.userId
+    } else {
+      if (!input.password || input.password.length < 6) throw new AppError("নতুন কর্মীর জন্য অন্তত ৬ অক্ষরের পাসওয়ার্ড দিন।", "Give the new worker a password of at least 6 characters.")
+      userId = ""
     }
-  }
-  await saveSettings(entries)
-  redirect("/admin/settings?ok=1")
-}
+    const clash = await db.user.findFirst({
+      where: { OR: [{ phone }, ...(email ? [{ email }] : [])], NOT: userId ? { id: userId } : undefined },
+    })
+    if (clash) throw new AppError("এই মোবাইল বা ইমেইল অন্য অ্যাকাউন্টে আছে।", "That mobile or email belongs to another account.")
 
-export async function saveNotifySettings(formData: FormData) {
-  await admin()
-  await saveSettings({
-    notifyInApp: formData.get("notifyInApp") === "on" ? "1" : "0",
-    notifyEmail: formData.get("notifyEmail") === "on" ? "1" : "0",
-    notifySms: formData.get("notifySms") === "on" ? "1" : "0",
-    notifyPush: formData.get("notifyPush") === "on" ? "1" : "0",
-    fcmKey: String(formData.get("fcmKey") || ""),
+    const userData = {
+      name: input.name,
+      phone,
+      email,
+      ...(input.password ? { passwordHash: await bcrypt.hash(input.password, 10) } : {}),
+    }
+    const user = userId
+      ? await db.user.update({ where: { id: userId }, data: userData })
+      : await db.user.create({ data: { ...userData, role: "WORKER" } })
+    const profileData = {
+      isRider: input.isRider,
+      nid: input.nid,
+      ...(photo ? { photo: `/api/uploads/${photo}` } : {}),
+      ...(nidPhoto ? { nidPhoto: `/api/uploads/${nidPhoto}` } : {}),
+    }
+    const profile = await db.workerProfile.upsert({
+      where: { userId: user.id },
+      update: profileData,
+      create: { userId: user.id, ...profileData },
+    })
+    await db.$transaction([
+      db.workerSkill.deleteMany({ where: { workerId: profile.id } }),
+      db.workerSkill.createMany({ data: input.skills.map((categoryId) => ({ workerId: profile.id, categoryId })) }),
+      db.workerArea.deleteMany({ where: { workerId: profile.id } }),
+      db.workerArea.createMany({ data: input.areas.map((areaId) => ({ workerId: profile.id, areaId })) }),
+    ])
+    done()
+    return "কর্মী সেভ হয়েছে।"
   })
-  redirect("/admin/notifications?ok=1")
 }
 
-export async function saveZone(formData: FormData) {
-  await admin()
-  await db.deliveryZone.create({
-    data: {
-      name: String(formData.get("name") || ""),
-      area: String(formData.get("area") || ""),
-      fee: Math.round(Number(formData.get("fee") || 0)),
-    },
+export async function toggleUserAction(form: FormData) {
+  const me = await actor(["ADMIN"])
+  const id = String(form.get("id") ?? "")
+  if (id === me.id) return
+  const row = await db.user.findUnique({ where: { id } })
+  if (row) await db.user.update({ where: { id }, data: { active: !row.active } })
+  done()
+}
+
+export async function saveStaffAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const input = parse(staffSchema, formObject(form))
+    const email = input.email.toLowerCase()
+    if (await db.user.findUnique({ where: { email } })) throw new AppError("এই ইমেইল আগে থেকে আছে।", "That email is already used.")
+    const phone = input.phone ? normalisePhone(input.phone) || null : null
+    await db.user.create({ data: { name: input.name, email, phone, role: input.role, passwordHash: await bcrypt.hash(input.password, 10) } })
+    done()
+    return "স্টাফ অ্যাকাউন্ট তৈরি হয়েছে।"
   })
-  redirect("/admin/zones")
 }
 
-export async function toggleZone(formData: FormData) {
-  await admin()
-  const id = String(formData.get("id") || "")
-  const zone = await db.deliveryZone.findUnique({ where: { id } })
-  if (zone) await db.deliveryZone.update({ where: { id }, data: { active: !zone.active } })
-  redirect("/admin/zones")
-}
-
-export async function savePage(formData: FormData) {
-  await admin()
-  const slug = String(formData.get("slug") || "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-")
-  await db.cmsPage.upsert({
-    where: { slug },
-    update: { title: String(formData.get("title") || ""), body: String(formData.get("body") || "") },
-    create: { slug, title: String(formData.get("title") || ""), body: String(formData.get("body") || "") },
+export async function resetPasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const id = String(form.get("id") ?? "")
+    const password = String(form.get("password") ?? "")
+    if (password.length < 6) throw new AppError("পাসওয়ার্ড অন্তত ৬ অক্ষরের দিন।", "Password must be at least 6 characters.")
+    await db.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(password, 10) } })
+    return "পাসওয়ার্ড বদলানো হয়েছে।"
   })
-  redirect("/admin/pages")
 }
 
-export async function deletePage(formData: FormData) {
-  await admin()
-  await db.cmsPage.delete({ where: { id: String(formData.get("id") || "") } })
-  redirect("/admin/pages")
-}
+// ── Content & settings ─────────────────────────────────────────────────────
 
-export async function saveGateway(formData: FormData) {
-  await admin()
-  const key = String(formData.get("key") || "")
-  if (!["payCod", "payBkash", "paySsl", "payStripe"].includes(key)) redirect("/admin/gateways")
-  const { saveSettings } = await import("@/lib/settings")
-  await saveSettings({ [key]: formData.get("enabled") === "on" ? "1" : "0" })
-  redirect("/admin/gateways?ok=1")
-}
-
-export async function saveAdminProfile(formData: FormData) {
-  const user = await admin()
-  const name = String(formData.get("name") || "").trim()
-  const password = String(formData.get("password") || "")
-  if (name.length < 2) redirect("/admin/profile?error=Add%20your%20name.")
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      name,
-      phone: String(formData.get("phone") || ""),
-      ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
-    },
+export async function saveSettingsAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const entries: Record<string, string> = {}
+    for (const key of SETTING_KEYS) {
+      if (key.startsWith("pay")) entries[key] = form.get(key) ? "1" : "0"
+      else if (form.has(key)) entries[key] = String(form.get(key)).trim().slice(0, 500)
+    }
+    if (entries.workerShare !== undefined) {
+      const share = Number(entries.workerShare)
+      if (!(share >= 0 && share <= 100)) throw new AppError("কর্মীর ভাগ ০–১০০% এর মধ্যে দিন।", "Worker share must be 0–100%.")
+    }
+    await saveSettings(entries)
+    done()
+    return "সেটিংস সেভ হয়েছে।"
   })
-  redirect("/admin/profile?ok=1")
 }
 
-export async function adminReply(formData: FormData) {
-  const user = await admin()
-  const threadId = String(formData.get("threadId") || "")
-  const body = String(formData.get("body") || "").trim()
-  if (!body) redirect(`/admin/messages/${threadId}`)
-  await db.message.create({ data: { threadId, senderId: user.id, body } })
-  await db.thread.update({ where: { id: threadId }, data: { updatedAt: new Date() } })
-  revalidatePath(`/admin/messages/${threadId}`)
-  revalidatePath("/chat")
-  redirect(`/admin/messages/${threadId}`)
+export async function saveFaqAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN"])
+    const { id, ...data } = parse(faqSchema, formObject(form))
+    if (id) await db.faq.update({ where: { id }, data })
+    else await db.faq.create({ data })
+    done()
+    return "FAQ সেভ হয়েছে।"
+  })
+}
+
+export async function deleteFaqAction(form: FormData) {
+  await actor(["ADMIN"])
+  await db.faq.deleteMany({ where: { id: String(form.get("id") ?? "") } })
+  done()
+}
+
+export async function saveTemplateAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    await actor(["ADMIN", "SUPPORT"])
+    const { id, ...data } = parse(templateSchema, formObject(form))
+    if (id) await db.replyTemplate.update({ where: { id }, data })
+    else await db.replyTemplate.create({ data })
+    revalidatePath("/support", "layout")
+    revalidatePath("/admin", "layout")
+    return "টেমপ্লেট সেভ হয়েছে।"
+  })
+}
+
+export async function deleteTemplateAction(form: FormData) {
+  await actor(["ADMIN", "SUPPORT"])
+  await db.replyTemplate.deleteMany({ where: { id: String(form.get("id") ?? "") } })
+  revalidatePath("/support", "layout")
+  revalidatePath("/admin", "layout")
 }

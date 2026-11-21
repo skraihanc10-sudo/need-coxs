@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  return Response.json({ ok: true, service: "need-coxs" })
+  return Response.json({ ok: true, service: "coxs-seba" })
 }

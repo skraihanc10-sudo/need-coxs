@@ -1,53 +1,19 @@
-import Link from "next/link"
-import { requireUser } from "@/lib/auth"
+import { requireUser, getLocale } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { StatusPill } from "@/components/bits"
-import { taka } from "@/lib/format"
-import { categoryStats } from "@/lib/marketplace"
+import { listBookings } from "@/lib/office"
+import { pick } from "@/lib/i18n"
+import { PageHeader } from "@/components/bits"
+import { BookingTable } from "@/components/booking/table"
+import { BookingFilters } from "@/components/booking/filters"
 
-export default async function AdminBookings() {
-  await requireUser(["ADMIN"], "/admin")
-  const [bookings, stats] = await Promise.all([
-    db.serviceBooking.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { customer: true, store: true, offering: true, category: true },
-      take: 80,
-    }),
-    categoryStats(),
-  ])
-  const commission = stats.reduce((sum, row) => sum + row.commission, 0)
+export default async function AdminBookingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  const [sp, , locale] = await Promise.all([searchParams, requireUser(["ADMIN"], "/admin/bookings"), getLocale()])
+  const [rows, categories, areas] = await Promise.all([listBookings(sp), db.serviceCategory.findMany({ orderBy: { sort: "asc" } }), db.serviceArea.findMany({ orderBy: { sort: "asc" } })])
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-extrabold">Service bookings</h1>
-      <p className="text-sm text-muted-foreground">Recorded commission on completed visits {taka(commission)}. Cash, bKash, and Nagad are recorded, not charged.</p>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-xs text-muted-foreground">
-              <th className="py-2">Code</th>
-              <th>Service</th>
-              <th>Customer</th>
-              <th>Provider</th>
-              <th>Pay</th>
-              <th>Status</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map((booking) => (
-              <tr key={booking.id} className="border-t">
-                <td className="py-2 font-bold">{booking.code}</td>
-                <td>{booking.offering.name}</td>
-                <td>{booking.customer.name}</td>
-                <td><Link href="/admin/providers" className="font-bold text-[var(--brand)]">{booking.store.name}</Link></td>
-                <td>{booking.paymentMethod}</td>
-                <td><StatusPill status={booking.status} locale="en" /></td>
-                <td>{booking.price ? taka(booking.price) : booking.quoteAmount ? taka(booking.quoteAmount) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div>
+      <PageHeader title={pick(locale, "বুকিং", "Bookings")} sub={pick(locale, `${rows.length}টা দেখানো হচ্ছে`, `${rows.length} shown`)} />
+      <BookingFilters locale={locale} values={sp} categories={categories} areas={areas} base="/admin/bookings" />
+      <BookingTable rows={rows} locale={locale} base="/admin/bookings" />
     </div>
   )
 }

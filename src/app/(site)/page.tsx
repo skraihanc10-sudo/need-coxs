@@ -1,165 +1,158 @@
 import Link from "next/link"
-import { Clock, Mail, MapPin, Phone, Smartphone } from "lucide-react"
-import { db } from "@/lib/db"
+import { ArrowRight, BadgeCheck, Clock3, MapPinned, MessageCircle, Phone, Search, ShieldCheck, Star } from "lucide-react"
 import { getLocale } from "@/lib/auth"
 import { getSettings } from "@/lib/settings"
-import { HeroSlider, QuoteSlider } from "@/components/site/home-client"
-import { Partners } from "@/components/site/chrome"
-import { posts } from "@/content/public"
-import { brand } from "@/theme/brand"
+import { activeCategories, activeFaqs, fromPrice, publishedReviews } from "@/lib/catalog"
+import { named, pick, words } from "@/lib/i18n"
+import { taka, telHref, whatsappHref } from "@/lib/format"
+import { unitLabel } from "@/lib/pricing"
 import { CategoryIcon } from "@/components/category-icon"
-
-const steps = [
-  ["01", "Pick", "বাছুন", "Choose the job, from laundry to a resort team."],
-  ["02", "Book", "বুক", "Area, time, notes, and cash, bKash, or Nagad."],
-  ["03", "Visit", "ভিজিট", "A provider accepts, quotes, and sends a field worker."],
-  ["04", "Rate", "রেট", "Track the visit and leave a review."],
-]
+import { brand } from "@/theme/brand"
 
 export default async function HomePage() {
-  const locale = await getLocale()
+  const [locale, settings, categories, reviews, faqs] = await Promise.all([getLocale(), getSettings(), activeCategories(), publishedReviews(), activeFaqs()])
+  const t = words(locale)
   const bn = locale === "bn"
-  const settings = await getSettings()
-  const [categories, areas, providers, reviews] = await Promise.all([
-    db.serviceCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
-    db.serviceArea.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
-    db.store.findMany({
-      where: { status: "APPROVED", listing: "SERVICE" },
-      orderBy: { rating: "desc" },
-      take: 4,
-      include: { providerCategories: { include: { category: true } } },
-    }),
-    db.review.findMany({ include: { customer: true, store: true }, take: 4 }),
-  ])
-  const quotes = reviews.length
-    ? reviews.map((review) => ({
-        name: review.customer.name,
-        text: review.comment,
-        meta: `${review.store.name} · ${review.rating} star review`,
-      }))
-    : [{ name: "Nusrat Rahman", text: "The rider called from the gate and the collars came back sharp.", meta: "Chandni Wash House" }]
 
   return (
-    <div>
-      <HeroSlider bn={bn} />
-      <section className="border-b bg-white">
-        <div className="site-wrap grid gap-4 py-5 text-sm md:grid-cols-3">
-          <p className="flex items-center gap-3"><MapPin className="text-[var(--pub-green)]" /> {brand.address}</p>
-          <p className="flex items-center gap-3"><Mail className="text-[var(--pub-green)]" /> {settings.supportEmail}</p>
-          <p className="flex items-center gap-3"><Clock className="text-[var(--pub-green)]" /> {bn ? "প্রতিদিন সকাল ৮টা–রাত ৯টা" : "Open 8:00–21:00, every day"}</p>
+    <div className="space-y-10 md:space-y-14">
+      {/* Hero + search */}
+      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#0b1f3a,#0a3fb0_60%,#1259e8)] px-5 py-9 text-white md:px-10 md:py-14">
+        <div className="pointer-events-none absolute -top-20 -right-20 size-72 rounded-full bg-white/10 blur-2xl" />
+        <p className="pill bg-white/15 text-white">{t.sadarOnly}</p>
+        <h1 className="display mt-4 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">
+          {pick(locale, "ঘরের যেকোনো কাজ, এক জায়গায়।", "Every home job, in one place.")}
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] text-white/80 md:text-lg">{bn ? settings.bannerBn : settings.bannerEn}</p>
+        <form action="/services" className="mt-6 flex max-w-xl items-center gap-2 rounded-2xl bg-white p-1.5 shadow-xl">
+          <Search className="ml-3 size-5 shrink-0 text-muted-foreground" />
+          <input name="q" placeholder={pick(locale, "কী সেবা লাগবে? যেমন: ফ্যান, লন্ড্রি, এসি", "What do you need? e.g. fan, laundry, AC")} className="h-11 min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-muted-foreground" />
+          <button className="btn-primary h-11 px-4 text-sm">{t.search}</button>
+        </form>
+        <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
+          <span className="rounded-full bg-white/15 px-3 py-1.5">✓ {pick(locale, "যাচাই করা কর্মী", "Verified workers")}</span>
+          <span className="rounded-full bg-white/15 px-3 py-1.5">✓ {pick(locale, "দাম আগেই জানুন", "Price up front")}</span>
+          <span className="rounded-full bg-white/15 px-3 py-1.5">✓ {pick(locale, "ক্যাশ / বিকাশ / নগদ", "Cash / bKash / Nagad")}</span>
         </div>
       </section>
 
-      <section className="site-wrap py-16">
-        <p className="text-center text-sm font-bold text-[var(--pub-green)]">● {bn ? "সেবা" : "Services"}</p>
-        <h2 className="mt-2 text-center text-5xl">{bn ? "কক্সবাজারের কাজ" : "Jobs in Cox's Bazar"}</h2>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((category) => (
-            <Link key={category.id} href={`/hub/c/${category.slug}`} className="reveal overflow-hidden bg-[#f6f8f8] shadow-sm">
-              <img src={category.cover || "/services/labour.svg"} alt="" className="h-36 w-full object-cover" />
-              <div className="flex items-start gap-3 p-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-[var(--pub-green)]">
-                  <CategoryIcon name={category.icon} className="size-5" />
+      {/* Service grid */}
+      <section>
+        <div className="mb-4 flex items-end justify-between">
+          <h2 className="display text-2xl font-extrabold text-ink md:text-3xl">{pick(locale, "আমাদের সেবা", "Our services")}</h2>
+          <Link href="/services" className="text-sm font-bold text-brand">{t.seeAll} →</Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {categories.map((c) => {
+            const from = fromPrice(c.offerings)
+            const cheapest = c.offerings.find((o) => o.price === from)
+            return (
+              <Link key={c.id} href={`/services/${c.slug}`} className="card group flex flex-col gap-3 p-4 transition hover:-translate-y-0.5 hover:ring-brand/40">
+                <span className="grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand transition group-hover:bg-brand group-hover:text-white">
+                  <CategoryIcon name={c.icon} />
                 </span>
-                <span>
-                  <span className="block text-lg font-bold">{bn ? category.nameBn : category.name}</span>
-                  <span className="mt-1 block text-sm text-[var(--pub-muted)]">{bn ? category.blurbBn : category.blurb}</span>
+                <span className="text-[15px] font-extrabold leading-snug text-ink">{named(locale, c)}</span>
+                <span className="mt-auto text-xs text-muted-foreground">
+                  {from && cheapest ? `${t.from} ${taka(from, locale)}/${unitLabel(cheapest.pricing, locale)}` : pick(locale, "দেখে দাম", "Quote after visit")}
                 </span>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="card p-5 md:p-8">
+        <h2 className="display text-2xl font-extrabold text-ink md:text-3xl">{pick(locale, "কীভাবে কাজ করে", "How it works")}</h2>
+        <ol className="mt-5 grid gap-4 md:grid-cols-3">
+          {[
+            [pick(locale, "সেবা বেছে নিন", "Pick a service"), pick(locale, "সেবা আর অপশন বাছুন, আনুমানিক দাম সাথে সাথে দেখুন।", "Choose the service and options and see the estimate right away.")],
+            [pick(locale, "ঠিকানা আর সময় দিন", "Add address & time"), pick(locale, "সদরের এলাকা, বাড়ির ঠিকানা আর পছন্দের সময় দিন। মোবাইল নম্বর দিলেই হবে।", "Your Sadar area, address and a time slot. A mobile number is all you need.")],
+            [pick(locale, "কর্মী আসবেন", "The worker arrives"), pick(locale, "আমাদের যাচাই করা কর্মী সময়মতো আসবেন। কাজ শেষে ক্যাশ, বিকাশ বা নগদে দিন।", "Our verified worker comes on time. Pay cash, bKash or Nagad when it's done.")],
+          ].map(([title, body], i) => (
+            <li key={title} className="flex gap-4">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-base font-extrabold text-white">{i + 1}</span>
+              <div>
+                <p className="font-extrabold text-ink">{title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{body}</p>
               </div>
-            </Link>
+            </li>
           ))}
+        </ol>
+        <Link href="/how-it-works" className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-brand">
+          {pick(locale, "বিস্তারিত দেখুন", "Read more")} <ArrowRight className="size-4" />
+        </Link>
+      </section>
+
+      {/* Why us */}
+      <section>
+        <h2 className="display text-2xl font-extrabold text-ink md:text-3xl">{pick(locale, "কেন কক্স সেবা", "Why Cox's Seba")}</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [ShieldCheck, pick(locale, "যাচাই করা কর্মী", "Verified workers"), pick(locale, "প্রতিটা কর্মীর NID যাচাই করা, আমাদের নিজের টিম।", "Every worker is NID-checked and on our own team.")],
+            [BadgeCheck, pick(locale, "নির্দিষ্ট দাম", "Fixed prices"), pick(locale, "দাম আগেই লেখা। লুকানো চার্জ নেই।", "Prices are listed up front. No hidden charges.")],
+            [Clock3, pick(locale, "দ্রুত আসি", "We come fast"), pick(locale, "আজকেরটা আজই, বেশিরভাগ কাজ ২ ঘণ্টার স্লটে।", "Same-day for most jobs, in 2-hour slots.")],
+            [MapPinned, pick(locale, "সদরের সব এলাকায়", "All of Sadar"), pick(locale, "কলাতলী থেকে খুরুশকুল, সদরের ২৫টা এলাকায়।", "Kolatoli to Khuruskul: all 25 Sadar areas.")],
+          ].map(([Icon, title, body]) => {
+            const I = Icon as typeof ShieldCheck
+            return (
+              <div key={title as string} className="card p-5">
+                <I className="size-6 text-brand" />
+                <p className="mt-3 font-extrabold text-ink">{title as string}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{body as string}</p>
+              </div>
+            )
+          })}
         </div>
       </section>
 
-      <section className="bg-white py-16">
-        <div className="site-wrap text-center">
-          <p className="text-sm font-bold text-[var(--pub-green)]">● {bn ? "ধাপ" : "How it works"}</p>
-          <h2 className="mt-2 text-5xl">{bn ? "যেভাবে হয়" : "How it works"}</h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-4">
-            {steps.map(([n, title, titleBn, text]) => (
-              <article key={n} className="reveal px-4">
-                <div className="mx-auto grid size-16 place-items-center rounded-full bg-[#e9f8ef] text-lg font-extrabold text-[var(--pub-green)]">{n}</div>
-                <h3 className="mt-4 text-2xl">{bn ? titleBn : title}</h3>
-                <p className="mt-2 text-sm text-[var(--pub-muted)]">{text}</p>
-              </article>
+      {/* Reviews */}
+      {reviews.length ? (
+        <section>
+          <h2 className="display text-2xl font-extrabold text-ink md:text-3xl">{pick(locale, "কাস্টমাররা যা বলেন", "What customers say")}</h2>
+          <div className="mt-4 flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+            {reviews.map((r) => (
+              <figure key={r.id} className="card w-72 shrink-0 p-5 md:w-auto">
+                <div className="flex gap-0.5 text-amber-400">
+                  {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="size-4 fill-current" />)}
+                </div>
+                <blockquote className="mt-3 text-[15px] text-ink">“{r.comment}”</blockquote>
+                <figcaption className="mt-3 text-xs text-muted-foreground">
+                  <span className="font-bold text-ink">{r.customer.name}</span> · {named(locale, r.booking.offering)} · {named(locale, r.booking.area)}
+                </figcaption>
+              </figure>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {/* Helpline */}
+      <section className="card flex flex-col gap-4 bg-brand-soft p-5 ring-0 md:flex-row md:items-center md:justify-between md:p-8">
+        <div>
+          <p className="display text-xl font-extrabold text-ink md:text-2xl">{pick(locale, "কথা বলতে চান?", "Want to talk first?")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{bn ? settings.officeHours : settings.officeHoursEn} · {settings.helpline}</p>
+        </div>
+        <div className="flex gap-2">
+          <a href={telHref(settings.helpline)} className="btn-primary flex-1 md:flex-none"><Phone className="size-4" /> {t.call}</a>
+          <a href={whatsappHref(settings.whatsapp, pick(locale, "আসসালামু আলাইকুম, কক্স সেবা থেকে একটা সেবা নিতে চাই।", "Hi, I'd like to book a service with Cox's Seba."))} className="btn-ghost flex-1 bg-paper md:flex-none"><MessageCircle className="size-4" /> {t.whatsapp}</a>
         </div>
       </section>
 
-      <section className="bg-[var(--pub-yellow)]">
-        <div className="site-wrap grid gap-4 py-5 text-sm font-semibold md:grid-cols-3">
-          <p className="flex items-center gap-2"><Phone className="size-4" /> {settings.supportPhone}</p>
-          <p className="flex items-center gap-2"><Mail className="size-4" /> {settings.supportEmail}</p>
-          <p className="flex items-center gap-2"><MapPin className="size-4" /> {brand.city}, Bangladesh</p>
-        </div>
-      </section>
-
-      <section className="site-wrap py-16">
-        <p className="text-sm font-bold text-[var(--pub-green)]">● {bn ? "প্রোভাইডার" : "Providers"}</p>
-        <h2 className="mt-2 text-4xl md:text-5xl">{bn ? "কাজের মানুষ" : "People who take the job"}</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          {providers.map((store) => (
-            <article key={store.id} className="rounded-3xl border bg-white p-4">
-              <p className="text-lg font-extrabold">{store.name}</p>
-              <p className="text-sm text-[var(--pub-muted)]">{store.area} · {store.providerType === "COMPANY" ? (bn ? `দল ${store.teamSize}` : `Team of ${store.teamSize}`) : bn ? "একজন" : "Individual"}</p>
-              <p className="mt-2 text-xs font-bold text-[var(--pub-green)]">{store.providerCategories.map((row) => (bn ? row.category.nameBn : row.category.name)).join(" · ")}</p>
-            </article>
+      {/* FAQ */}
+      <section>
+        <h2 className="display text-2xl font-extrabold text-ink md:text-3xl">{pick(locale, "সাধারণ প্রশ্ন", "Common questions")}</h2>
+        <div className="mt-4 space-y-2">
+          {faqs.map((f) => (
+            <details key={f.id} className="card group px-5 py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-extrabold text-ink">
+                {bn ? f.questionBn : f.question}
+                <span className="text-brand transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-sm text-muted-foreground">{bn ? f.answerBn : f.answer}</p>
+            </details>
           ))}
         </div>
-      </section>
-
-      <section className="bg-white py-16">
-        <div className="site-wrap">
-          <p className="text-sm font-bold text-[var(--pub-green)]">● {bn ? "এলাকা" : "Areas"}</p>
-          <h2 className="mt-2 text-4xl">{bn ? "কক্সবাজারের এলাকা" : "Across Cox's Bazar"}</h2>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {areas.map((area) => (
-              <Link key={area.id} href="/hub" className="rounded-full bg-[#f4f7f8] px-4 py-2 text-sm font-bold">{bn ? area.nameBn : area.name}</Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="site-wrap grid items-center gap-8 py-8 md:grid-cols-2">
-        <div className="rounded-[28px] p-8 text-white" style={{ background: "var(--pub-navy)" }}>
-          <Smartphone className="size-8 text-[var(--pub-yellow)]" />
-          <h2 className="mt-4 text-4xl">{bn ? "ফোনে অ্যাপের মতো" : "The app, on your phone"}</h2>
-          <p className="mt-3 text-sm leading-7 text-white/70">{bn ? "গ্রাহকের ডেস্ক ফোনের সাইজে খোলে। লন্ড্রি আগের মতোই আছে।" : "The customer desk opens in a phone frame. Laundry still books the way it did."}</p>
-          <Link href="/hub" className="pub-btn mt-6">{bn ? "অ্যাপ খুলুন" : "Open the app"}</Link>
-        </div>
-        <div className="rounded-[28px] bg-[var(--pub-yellow)] p-8">
-          <h2 className="text-4xl">{bn ? "প্রোভাইডার হোন" : "Become a provider"}</h2>
-          <p className="mt-3 text-sm leading-7">{bn ? "একজন বা একটি দল। এলাকা বাছুন, এনআইডি দিন, অ্যাডমিন অনুমোদন করবে।" : "One person or a team. Pick your areas, send your NID, and wait for approval."}</p>
-          <Link href="/partner" className="pub-btn mt-6">{bn ? "যোগ দিন" : "List your service"}</Link>
-        </div>
-      </section>
-
-      <Partners />
-
-      <section className="site-wrap py-16">
-        <p className="text-center text-sm font-bold text-[var(--pub-green)]">● {bn ? "মতামত" : "What clients say"}</p>
-        <h2 className="mt-2 text-center text-5xl">{bn ? "গ্রাহকের কথা" : "Our testimonials"}</h2>
-        <div className="mt-8">
-          <QuoteSlider quotes={quotes} />
-        </div>
-      </section>
-
-      <section className="site-wrap pb-16">
-        <p className="text-center text-sm font-bold text-[var(--pub-green)]">● {bn ? "খবর" : "Our blog"}</p>
-        <h2 className="mt-2 text-center text-5xl">{bn ? "খবর ও লেখা" : "News and articles"}</h2>
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {posts.map((post) => (
-            <article key={post.slug} className="reveal bg-white shadow-sm">
-              <img src={post.image} alt="" className="h-48 w-full object-cover" />
-              <div className="p-4">
-                <p className="text-xs font-bold text-[var(--pub-green)]">{post.date}</p>
-                <h3 className="mt-2 text-2xl normal-case"><Link href={`/blog/${post.slug}`}>{post.title}</Link></h3>
-                <p className="mt-2 text-sm text-[var(--pub-muted)]">{post.excerpt}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        <p className="mt-4 text-xs text-muted-foreground">{brand.name} · {pick(locale, "কক্সবাজার সদর, বাংলাদেশ", "Cox's Bazar Sadar, Bangladesh")}</p>
       </section>
     </div>
   )

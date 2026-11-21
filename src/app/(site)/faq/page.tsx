@@ -5,9 +5,9 @@ export default async function FaqPage() {
   const faqs = await db.faq.findMany({ where: { storeId: null }, orderBy: { sort: "asc" } })
   const padded = faqs.length >= 6 ? faqs : [
     ...faqs,
-    { id: "a", question: "How do I book?", answer: "Open Book now, pick a laundry, add clothes, then choose pickup and delivery slots." },
-    { id: "b", question: "How do I pay?", answer: "Cash on delivery is live. bKash, SSLCommerz, and card appear when their keys are set." },
-    { id: "c", question: "Can I cancel?", answer: "Yes, until the clothes are picked up. Wallet credit used on the order is returned." },
+    { id: "a", question: "How do I book?", answer: "Open the app, pick a service in Cox's Bazar, choose an area and a time. Laundry still uses the clothes desk." },
+    { id: "b", question: "How do I pay?", answer: "Cash, bKash, and Nagad are recorded on the visit. They are not charged online." },
+    { id: "c", question: "Can I cancel?", answer: "Yes, until the visit is completed. Decline a quote if the price does not work." },
   ]
   return (
     <div>

@@ -1,9 +1,11 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireUser, getLocale } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { PageHeader, StatusPill, ErrorNote } from "@/components/bits"
 import { formatDay, taka } from "@/lib/format"
 import { acceptQuoteAction, cancelCustomerBookingAction, reviewBookingAction } from "@/actions/marketplace"
+import { declineQuoteAction } from "@/actions/inbox"
 
 export default async function JobPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ error?: string }> }) {
   const user = await requireUser(["CUSTOMER"], "/hub")
@@ -61,11 +63,18 @@ export default async function JobPage({ params, searchParams }: { params: Promis
           ))}
         </ol>
         {booking.status === "QUOTED" ? (
-          <form action={acceptQuoteAction}>
-            <input type="hidden" name="code" value={booking.code} />
-            <button type="submit" className="pill w-full bg-primary text-primary-foreground">{bn ? "কোট গ্রহণ করুন" : "Accept quote"}</button>
-          </form>
+          <div className="grid grid-cols-2 gap-2">
+            <form action={acceptQuoteAction}>
+              <input type="hidden" name="code" value={booking.code} />
+              <button type="submit" className="pill w-full bg-primary text-primary-foreground">{bn ? "কোট গ্রহণ" : "Accept quote"}</button>
+            </form>
+            <form action={declineQuoteAction}>
+              <input type="hidden" name="code" value={booking.code} />
+              <button type="submit" className="pill w-full border">{bn ? "কোট বাতিল" : "Decline quote"}</button>
+            </form>
+          </div>
         ) : null}
+        <Link href={`/chat/b/${booking.code}`} className="pill flex items-center justify-center border">{bn ? "এই বুকিংয়ে চ্যাট" : "Chat on this booking"}</Link>
         {booking.status === "COMPLETED" && !booking.review ? (
           <form action={reviewBookingAction} className="space-y-2">
             <input type="hidden" name="code" value={booking.code} />

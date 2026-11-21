@@ -21,17 +21,22 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <a className="absolute top-4 left-4 bg-white px-3 py-2 text-xs font-bold shadow" href="https://www.google.com/maps/search/?api=1&query=23.746,90.374">Open in Maps</a>
         </div>
         <dl className="space-y-5 text-sm">
-          {[
-            ["Address", settings.address],
-            ["Telephone", settings.supportPhone],
-            ["E-mail", settings.supportEmail],
-            ["Social", brand.name],
-          ].map(([label, value]) => (
-            <div key={label} className="border-b pb-4">
-              <dt className="font-bold">{label}</dt>
-              <dd className="mt-1 text-[var(--pub-muted)]">{value}</dd>
-            </div>
-          ))}
+          <div className="border-b pb-4">
+            <dt className="font-bold">Address</dt>
+            <dd className="mt-1 text-[var(--pub-muted)]">{settings.address}</dd>
+          </div>
+          <div className="border-b pb-4">
+            <dt className="font-bold">Telephone</dt>
+            <dd className="mt-1"><a className="font-bold text-[var(--pub-green)]" href={`tel:${settings.supportPhone}`}>{settings.supportPhone}</a></dd>
+          </div>
+          <div className="border-b pb-4">
+            <dt className="font-bold">WhatsApp</dt>
+            <dd className="mt-1"><a className="font-bold text-[var(--pub-green)]" href={`https://wa.me/${settings.supportPhone.replace(/\D/g, "").replace(/^0/, "880")}`} target="_blank" rel="noreferrer">Message {brand.name} on WhatsApp</a></dd>
+          </div>
+          <div className="border-b pb-4">
+            <dt className="font-bold">E-mail</dt>
+            <dd className="mt-1"><a className="font-bold text-[var(--pub-green)]" href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a></dd>
+          </div>
         </dl>
       </section>
       <section className="site-wrap max-w-3xl pb-16 text-center">

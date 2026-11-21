@@ -21,11 +21,13 @@ const LINKS = [
 
 export default async function ProfilePage() {
   const user = await requireUser(["CUSTOMER"], "/profile")
-  const t = copy(await getLocale())
+  const locale = await getLocale()
+  const t = copy(locale)
+  const bn = locale === "bn"
   return (
     <div className="pb-6">
       <div className="bg-[var(--brand)] px-4 py-8 text-white">
-        <p className="text-sm text-white/80">{brand.name}</p>
+        <p className="text-sm text-white/80">{bn ? brand.nameBn : brand.name}</p>
         <p className="text-2xl font-extrabold">{user.name}</p>
         <p className="text-sm text-white/80">{user.email}</p>
       </div>
@@ -35,6 +37,8 @@ export default async function ProfilePage() {
             {t[key]}
           </Link>
         ))}
+        <Link href="/help" className="block px-3 py-3 font-semibold">{bn ? "সাপোর্ট টিকিট" : "Support tickets"}</Link>
+        <Link href="/notices" className="block px-3 py-3 font-semibold">{bn ? "নোটিশ" : "Notifications"}</Link>
       </div>
       <form action={logout} className="px-4 pt-4">
         <button className="pill w-full border text-rose-600">{t.logout}</button>

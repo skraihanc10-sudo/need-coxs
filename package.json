@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 47291",
     "lint": "eslint",
+    "test:e2e": "playwright test",
     "db:setup": "node scripts/ensure-env.mjs && prisma generate && prisma db push && prisma db seed"
   },
   "prisma": {
@@ -31,6 +32,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",

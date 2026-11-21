@@ -235,6 +235,9 @@ export async function sendChat(_prev: { error: string }, formData: FormData) {
     if (!thread) thread = await db.thread.create({ data: { customerId: user.id } })
     await db.message.create({ data: { threadId: thread.id, senderId: user.id, body } })
     await db.thread.update({ where: { id: thread.id }, data: { updatedAt: new Date() } })
+    const admins = await db.user.findMany({ where: { role: "ADMIN", active: true }, select: { id: true } })
+    const { notify } = await import("@/lib/notify")
+    await Promise.all(admins.map((admin) => notify(admin.id, "Customer care", body.slice(0, 140))))
     revalidatePath("/chat")
     revalidatePath("/admin/messages")
     return { error: "" }

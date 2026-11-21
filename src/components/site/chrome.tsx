@@ -17,7 +17,7 @@ const LINKS = [
   ["Contact", "/contact"],
 ]
 
-export function SiteHeader({ phone }: { phone: string }) {
+export function SiteHeader({ phone, bn = false }: { phone: string; bn?: boolean }) {
   const path = usePathname()
   const [open, setOpen] = useState(false)
   return (
@@ -30,8 +30,8 @@ export function SiteHeader({ phone }: { phone: string }) {
             </svg>
           </span>
           <span>
-            <span className="block text-xl leading-none" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>{brand.name}</span>
-            <span className="text-[10px] tracking-[0.16em] text-[var(--pub-muted)]">COX&apos;S BAZAR</span>
+            <span className="block text-xl leading-none" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>{bn ? brand.nameBn : brand.name}</span>
+            <span className="text-[10px] tracking-[0.08em] text-[var(--pub-muted)]">{bn ? "কক্সবাজার" : "COX'S BAZAR"}</span>
           </span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold lg:flex">
@@ -77,26 +77,27 @@ export function SiteFooter({ phone, email }: { phone: string; email: string }) {
       <div className="site-wrap grid gap-8 py-12 md:grid-cols-4">
         <div>
           <p className="text-sm font-bold tracking-widest text-[var(--pub-green)]">CONTACT US</p>
-          <p className="mt-4 flex gap-2 text-sm text-white/80"><Phone className="size-4 text-[var(--pub-green)]" /> {phone}</p>
+          <p className="mt-4 flex gap-2 text-sm text-white/80"><Phone className="size-4 text-[var(--pub-green)]" /> <a href={`tel:${phone}`}>{phone}</a></p>
+          <p className="mt-2 text-sm"><a className="font-bold text-[var(--pub-green)]" href={`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "880")}`}>WhatsApp</a></p>
           <p className="mt-2 flex gap-2 text-sm text-white/80"><MapPin className="size-4 text-[var(--pub-green)]" /> {brand.address}</p>
           <p className="mt-2 flex gap-2 text-sm text-white/80"><Mail className="size-4 text-[var(--pub-green)]" /> {email}</p>
         </div>
         <div>
           <p className="text-sm font-bold tracking-widest">PRODUCTS</p>
           <ul className="mt-4 space-y-2 text-sm text-white/75">
-            <li><Link href="/services/wash-fold">Wash & fold</Link></li>
-            <li><Link href="/services/dry-cleaning">Dry cleaning</Link></li>
-            <li><Link href="/services/iron">Iron only</Link></li>
-            <li><Link href="/shop">Shop</Link></li>
+            <li><Link href="/hub/c/laundry">Laundry</Link></li>
+            <li><Link href="/hub/c/wifi">WiFi</Link></li>
+            <li><Link href="/hub/c/electrician">Electrician</Link></li>
+            <li><Link href="/hub/c/deep-cleaning">Resort cleaning</Link></li>
           </ul>
         </div>
         <div>
           <p className="text-sm font-bold tracking-widest">CATEGORIES</p>
           <ul className="mt-4 space-y-2 text-sm text-white/75">
-            <li><Link href="/c/wash">Wash</Link></li>
-            <li><Link href="/c/dry">Dry clean</Link></li>
-            <li><Link href="/c/iron">Iron</Link></li>
-            <li><Link href="/stores">Laundries</Link></li>
+            <li><Link href="/hub">All services</Link></li>
+            <li><Link href="/faq">FAQ</Link></li>
+            <li><Link href="/contact">Contact</Link></li>
+            <li><Link href="/partner">Become a provider</Link></li>
           </ul>
         </div>
         <div>

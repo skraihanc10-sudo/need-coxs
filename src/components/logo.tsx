@@ -11,7 +11,7 @@ export function Mark({ size = 36 }: { size?: number }) {
   )
 }
 
-export function Logo({ light = false, size = 34 }: { light?: boolean; size?: number }) {
+export function Logo({ light = false, size = 34, bn = false }: { light?: boolean; size?: number; bn?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2">
       <Mark size={size} />
@@ -19,7 +19,7 @@ export function Logo({ light = false, size = 34 }: { light?: boolean; size?: num
         className={light ? "text-white" : "text-[var(--brand-ink)]"}
         style={{ fontWeight: 800, letterSpacing: "-0.04em" }}
       >
-        {brand.name}
+        {bn ? brand.nameBn : brand.name}
       </span>
     </span>
   )

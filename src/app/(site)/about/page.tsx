@@ -8,7 +8,7 @@ export default function AboutPage() {
       <PageBanner title="About" crumbs={["About"]} />
       <section className="site-wrap grid items-center gap-10 py-16 md:grid-cols-2">
         <div className="relative">
-          <img src="/marketing/svc-wash.jpg" alt="A washing machine in a Need Cox's partner laundry" className="h-[460px] w-full object-cover" />
+          <img src="/marketing/svc-wash.jpg" alt="A washing machine in a Cox's Seba partner laundry" className="h-[460px] w-full object-cover" />
           <div className="absolute bottom-6 left-6 grid size-28 place-items-center bg-[var(--pub-green)] text-center text-white">
             <span className="text-4xl leading-none">8+</span>
             <span className="text-sm">Years</span>

@@ -28,9 +28,22 @@ const open = Open_Sans({
   weight: ["400", "600", "700"],
 })
 
-export const metadata: Metadata = {
-  title: { default: brand.name, template: `%s · ${brand.name}` },
-  description: "Doorstep laundry from neighbourhood wash houses in Dhaka. Compare prices, book a pickup, and pay cash on delivery.",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale()
+  const bn = locale === "bn"
+  const title = bn ? brand.nameBn : brand.name
+  const description = bn ? brand.taglineBn : brand.tagline
+  return {
+    title: { default: title, template: `%s · ${title}` },
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: title,
+      locale: bn ? "bn_BD" : "en_US",
+      type: "website",
+    },
+  }
 }
 
 export const dynamic = "force-dynamic"

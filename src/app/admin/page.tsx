@@ -41,7 +41,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const serviceGmv = stats.reduce((sum, row) => sum + row.gmv, 0)
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-extrabold">Need Cox&apos;s desk</h1>
+      <h1 className="text-2xl font-extrabold">Cox&apos;s Seba desk</h1>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={`/admin?view=orders&range=${range}`} data-on={!revenue} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground data-[on=false]:bg-muted data-[on=false]:text-foreground">Orders</Link>
         <Link href={`/admin?view=revenue&range=${range}`} data-on={revenue} className="rounded-full bg-muted px-4 py-2 text-sm font-bold data-[on=true]:bg-primary data-[on=true]:text-primary-foreground">Revenue</Link>

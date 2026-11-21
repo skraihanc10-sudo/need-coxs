@@ -59,7 +59,7 @@ export const posts = [
     title: "How a shirt should come back",
     date: "4 Nov 2026",
     image: "/marketing/news-press.jpg",
-    excerpt: "Collar, cuffs, and a hanger. That is the press standard on Need Cox's.",
+    excerpt: "Collar, cuffs, and a hanger. That is the press standard on Cox's Seba.",
     body: "Wash and iron is a different line from wash and fold. If you need the collar sharp for the office, pick wash and iron on the shirt, not the kilo bundle.",
   },
   {

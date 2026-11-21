@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireUser } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -58,6 +59,7 @@ export default async function VendorJob({ params, searchParams }: { params: Prom
           <button type="submit" className="pill bg-primary px-4 text-primary-foreground">Assign</button>
         </form>
       ) : null}
+      <Link href={`/vendor/chat/${job.code}`} className="mt-4 inline-block text-sm font-bold text-[var(--brand)]">Open job chat</Link>
       <ol className="mt-4 space-y-1 text-xs text-muted-foreground">
         {job.events.map((event) => <li key={event.id}>{event.status} — {event.note}</li>)}
       </ol>

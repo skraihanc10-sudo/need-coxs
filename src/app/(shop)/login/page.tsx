@@ -10,13 +10,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const user = await getUser()
   if (user) redirect(homeFor(user.role))
   const { next = "" } = await searchParams
-  const t = copy(await getLocale())
+  const locale = await getLocale()
+  const t = copy(locale)
   return (
     <div className="px-5 py-8">
       <div className="overflow-hidden rounded-3xl">
         <img src="/marketing/hero-laundry.jpg" alt="" className="h-40 w-full object-cover" />
       </div>
-      <div className="mt-5"><Logo /></div>
+      <div className="mt-5"><Logo bn={locale === "bn"} /></div>
       <h1 className="mt-4 text-2xl font-extrabold">{t.loginTitle}</h1>
       <p className="mt-1 text-sm text-muted-foreground">Demo accounts fill the form. Passwords are on the cards.</p>
       <div className="mt-6">

@@ -27,7 +27,7 @@ export default async function AdminRiders({ searchParams }: { searchParams: Prom
         <input name="vehicle" placeholder="Bike" className="h-11 rounded-xl border px-3" />
         <input name="zone" placeholder="Gulshan" className="h-11 rounded-xl border px-3" />
         <select name="storeId" className="h-11 rounded-xl border px-3">
-          <option value="">Need Cox&apos;s pool</option>
+          <option value="">Cox&apos;s Seba pool</option>
           {stores.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}
         </select>
         <button className="pill bg-primary text-primary-foreground">Add rider</button>

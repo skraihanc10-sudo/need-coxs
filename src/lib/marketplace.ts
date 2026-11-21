@@ -1,6 +1,12 @@
 import { db } from "./db"
 import { AppError } from "./errors"
 import { upcomingDays } from "./format"
+import { notify } from "./notify"
+
+async function ping(userIds: Array<string | null | undefined>, title: string, body: string, except?: string) {
+  const ids = [...new Set(userIds.filter((id): id is string => Boolean(id) && id !== except))]
+  await Promise.all(ids.map((id) => notify(id, title, body)))
+}
 
 export const SERVICE_NEXT: Record<string, string[]> = {
   REQUESTED: ["QUOTED", "ACCEPTED", "CANCELLED"],
@@ -73,7 +79,7 @@ export async function createServiceBooking(input: BookingInput) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = `SVC-${Math.floor(10000 + Math.random() * 90000)}`
     try {
-      return await db.serviceBooking.create({
+      const created = await db.serviceBooking.create({
         data: {
           code,
           customerId: input.customerId,
@@ -101,6 +107,8 @@ export async function createServiceBooking(input: BookingInput) {
         },
         include: bookingInclude,
       })
+      await notify(store.ownerId, "New booking", `${created.code} · ${offering.name}`)
+      return created
     } catch (error) {
       if (attempt === 4) throw error
     }
@@ -120,7 +128,7 @@ export async function quoteBooking(code: string, actorId: string, storeId: strin
   if (booking.pricing !== "QUOTE") throw new AppError("This visit already has a price.")
   if (!SERVICE_NEXT[booking.status]?.includes("QUOTED")) throw new AppError("This booking cannot be quoted now.")
   if (!Number.isFinite(amount) || amount < 1) throw new AppError("Enter a quote in taka.")
-  return db.serviceBooking.update({
+  const quoted = await db.serviceBooking.update({
     where: { id: booking.id },
     data: {
       status: "QUOTED",
@@ -128,13 +136,31 @@ export async function quoteBooking(code: string, actorId: string, storeId: strin
       events: { create: { status: "QUOTED", note: `Quote ৳${Math.round(amount)}`, actorId } },
     },
   })
+  await notify(booking.customerId, "Quote ready", `${booking.code} · ৳${Math.round(amount)}`)
+  return quoted
+}
+
+export async function declineQuote(code: string, customerId: string) {
+  const booking = await loadBooking(code)
+  if (booking.customerId !== customerId) throw new AppError("This is not your booking.")
+  if (booking.status !== "QUOTED") throw new AppError("There is no quote to decline.")
+  const declined = await db.serviceBooking.update({
+    where: { id: booking.id },
+    data: {
+      status: "CANCELLED",
+      cancelReason: "Customer declined the quote",
+      events: { create: { status: "CANCELLED", note: "Customer declined the quote", actorId: customerId } },
+    },
+  })
+  await notify(booking.store.ownerId, "Quote declined", booking.code)
+  return declined
 }
 
 export async function acceptQuote(code: string, customerId: string) {
   const booking = await loadBooking(code)
   if (booking.customerId !== customerId) throw new AppError("This is not your booking.")
   if (booking.status !== "QUOTED" || !booking.quoteAmount) throw new AppError("There is no quote to accept.")
-  return db.serviceBooking.update({
+  const accepted = await db.serviceBooking.update({
     where: { id: booking.id },
     data: {
       status: "ACCEPTED",
@@ -142,6 +168,8 @@ export async function acceptQuote(code: string, customerId: string) {
       events: { create: { status: "ACCEPTED", note: "Customer accepted the quote", actorId: customerId } },
     },
   })
+  await notify(booking.store.ownerId, "Quote accepted", booking.code)
+  return accepted
 }
 
 export async function providerAdvance(code: string, actorId: string, storeId: string, status: string, note = "") {
@@ -158,15 +186,17 @@ export async function assignWorker(code: string, actorId: string, storeId: strin
   const booking = await loadBooking(code)
   if (booking.storeId !== storeId) throw new AppError("This booking is for another provider.")
   if (["COMPLETED", "CANCELLED", "REQUESTED"].includes(booking.status)) throw new AppError("Assign a worker after the job is accepted.")
-  const worker = await db.deliveryProfile.findFirst({ where: { id: workerId, storeId } })
+  const worker = await db.deliveryProfile.findFirst({ where: { id: workerId, storeId }, include: { user: true } })
   if (!worker) throw new AppError("That field worker is not on your team.")
-  return db.serviceBooking.update({
+  const assigned = await db.serviceBooking.update({
     where: { id: booking.id },
     data: {
       workerId,
       events: { create: { status: booking.status, note: "Field worker assigned", actorId } },
     },
   })
+  await ping([worker.userId, booking.customerId], "Field worker assigned", `${booking.code} · ${worker.user.name}`, actorId)
+  return assigned
 }
 
 export async function workerAdvance(code: string, workerProfileId: string, actorId: string, status: string) {
@@ -182,7 +212,7 @@ export async function cancelBooking(code: string, actorId: string, who: { custom
   if (who.customerId && booking.customerId !== who.customerId) throw new AppError("This is not your booking.")
   if (who.storeId && booking.storeId !== who.storeId) throw new AppError("This booking is for another provider.")
   if (!SERVICE_NEXT[booking.status]?.includes("CANCELLED")) throw new AppError("This booking is already closed.")
-  return db.serviceBooking.update({
+  const cancelled = await db.serviceBooking.update({
     where: { id: booking.id },
     data: {
       status: "CANCELLED",
@@ -190,6 +220,8 @@ export async function cancelBooking(code: string, actorId: string, who: { custom
       events: { create: { status: "CANCELLED", note: reason.trim() || "Cancelled", actorId } },
     },
   })
+  await ping([booking.customerId, booking.store.ownerId, booking.worker?.userId], "Booking cancelled", booking.code, actorId)
+  return cancelled
 }
 
 export async function reviewBooking(code: string, customerId: string, rating: number, comment: string) {
@@ -213,11 +245,11 @@ export async function reviewBooking(code: string, customerId: string, rating: nu
 }
 
 async function settle(id: string, status: string, actorId: string, note: string) {
-  const booking = await db.serviceBooking.findUnique({ where: { id }, include: { category: true } })
+  const booking = await db.serviceBooking.findUnique({ where: { id }, include: { category: true, store: true, worker: true } })
   if (!booking) throw new AppError("Booking not found.")
   const done = status === "COMPLETED"
   const commissionAmt = done ? Math.round(booking.price * (booking.category.commissionRate / 100)) : 0
-  return db.serviceBooking.update({
+  const updated = await db.serviceBooking.update({
     where: { id },
     data: {
       status,
@@ -228,6 +260,13 @@ async function settle(id: string, status: string, actorId: string, note: string)
       events: { create: { status, note, actorId } },
     },
   })
+  await ping(
+    [booking.customerId, booking.store.ownerId, booking.worker?.userId],
+    "Booking update",
+    `${booking.code} is now ${status.replaceAll("_", " ").toLowerCase()}`,
+    actorId,
+  )
+  return updated
 }
 
 function statusLabelNote(status: string) {

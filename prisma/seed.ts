@@ -89,7 +89,7 @@ async function main() {
 
   await db.walletTxn.createMany({
     data: [
-      { userId: nusrat.id, amount: 500, type: "CREDIT", note: "Welcome balance from Need Cox's" },
+      { userId: nusrat.id, amount: 500, type: "CREDIT", note: "Welcome balance from Cox's Seba" },
       { userId: imran.id, amount: 120, type: "CREDIT", note: "Referral credit" },
     ],
   })
@@ -415,7 +415,7 @@ async function main() {
   })
   await db.cmsPage.createMany({
     data: [
-      { slug: "privacy", title: "Privacy", body: "Need Cox's stores passwords as hashes and uses addresses only for pickup and delivery." },
+      { slug: "privacy", title: "Privacy", body: "Cox's Seba stores passwords as hashes and uses addresses only to complete a booking." },
       { slug: "care", title: "Garment care", body: "Silk and suits should be booked as dry clean, not wash and fold." },
     ],
   })
@@ -442,7 +442,7 @@ async function main() {
   const marketplace = (await import("../scripts/seed-catalog.mjs")) as { ensureMarketplace: () => Promise<void> }
   await marketplace.ensureMarketplace()
 
-  console.log("Seeded Need Cox's")
+  console.log("Seeded Cox's Seba")
   console.log(demoAccounts.map((account) => `${account.label}: ${account.email} / ${account.password}`).join("\n"))
 }
 

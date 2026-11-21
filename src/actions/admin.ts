@@ -106,7 +106,7 @@ export async function adjustWallet(formData: FormData) {
   await admin()
   const id = String(formData.get("id") || "")
   const amount = Math.round(Number(formData.get("amount") || 0))
-  const note = String(formData.get("note") || "Adjusted by Need Cox's")
+  const note = String(formData.get("note") || "Adjusted by Cox's Seba")
   if (!amount) redirect("/admin/customers?error=Enter%20an%20amount.")
   await db.wallet.upsert({
     where: { userId: id },
@@ -188,7 +188,7 @@ export async function markPayout(formData: FormData) {
   const status = String(formData.get("status") || "PAID")
   await db.payout.update({
     where: { id },
-    data: { status, actorId: user.id, note: status === "PAID" ? "Paid by Need Cox's" : "Rejected" },
+    data: { status, actorId: user.id, note: status === "PAID" ? "Paid by Cox's Seba" : "Rejected" },
   })
   redirect("/admin/payouts")
 }

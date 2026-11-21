@@ -25,7 +25,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const next = clean(formData.get("next"))
   const user = await db.user.findUnique({ where: { email } })
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    return { error: "Those details do not match a Need Cox's account." }
+    return { error: "Those details do not match a Cox's Seba account." }
   }
   if (!user.active) return { error: "This account is paused. Contact support." }
   await setSession(user, remember ? 30 : 14)
@@ -163,7 +163,13 @@ export async function applyPartner(_prev: AuthState, formData: FormData): Promis
     const laundry = clean(formData.get("laundry"))
     const area = clean(formData.get("area"))
     const address = clean(formData.get("address"))
-    if (!name || !laundry || !area || !address) throw new AppError("Fill in the laundry details.")
+    const categorySlug = clean(formData.get("category"))
+    const nid = clean(formData.get("nid"))
+    if (!name || !laundry || !area || !address) throw new AppError("Fill in the provider details.")
+    if (nid.length < 6) throw new AppError("Add your NID number.")
+    const category = await db.serviceCategory.findUnique({ where: { slug: categorySlug } })
+    if (!category) throw new AppError("Pick a service category.")
+    const areaRow = await db.serviceArea.findFirst({ where: { name: area, active: true } })
     if (!email.includes("@") || password.length < 6) throw new AppError("Add a valid email and a password of 6+ characters.")
     if (await db.user.findUnique({ where: { email } })) throw new AppError("That email is already registered.")
     const settings = await getSettings()
@@ -185,12 +191,15 @@ export async function applyPartner(_prev: AuthState, formData: FormData): Promis
             slug,
             area,
             address,
+            city: "Cox's Bazar",
             phone,
-            tagline: "New on Need Cox's",
+            tagline: "New on Cox's Seba",
             about: "",
-            lat: 23.78,
-            lng: 90.4,
+            lat: areaRow?.lat ?? 21.427,
+            lng: areaRow?.lng ?? 91.98,
             status: "PENDING",
+            listing: category.laundry ? "LAUNDRY" : "SERVICE",
+            nid,
             commissionRate: Number(settings.defaultCommission || 12),
             deliveryFee: Number(settings.defaultDeliveryFee || 60),
             hue: 250,
@@ -206,6 +215,14 @@ export async function applyPartner(_prev: AuthState, formData: FormData): Promis
       ["17:00–19:00", "17:00", "19:00"],
     ]
     if (user.store) {
+      await db.providerDocument.create({
+        data: { storeId: user.store.id, kind: "NID", label: "National ID", reference: nid, status: "PENDING" },
+      })
+      await db.providerCategory.create({ data: { storeId: user.store.id, categoryId: category.id } })
+      if (areaRow) await db.providerArea.create({ data: { storeId: user.store.id, areaId: areaRow.id } })
+      const admins = await db.user.findMany({ where: { role: "ADMIN", active: true }, select: { id: true } })
+      const { notify } = await import("@/lib/notify")
+      await Promise.all(admins.map((admin) => notify(admin.id, "Provider waiting", `${laundry} · NID ${nid}`)))
       await db.timeSlot.createMany({
         data: slots.map(([label, startTime, endTime]) => ({
           storeId: user.store!.id,

@@ -7,9 +7,9 @@ import { brand } from "@/theme/brand"
 const slides = [
   {
     image: "/marketing/hero-laundry.jpg",
-    kicker: "Cox's Bazar",
-    title: "What do you need in Cox's Bazar?",
-    titleBn: "কক্সবাজারে কী দরকার?",
+    kicker: brand.name,
+    title: brand.tagline,
+    titleBn: brand.taglineBn,
   },
   {
     image: "/marketing/svc-fold.jpg",

@@ -73,5 +73,7 @@ export const config = {
     "/chat/:path*",
     "/hub/jobs",
     "/hub/jobs/:path*",
+    "/help",
+    "/help/:path*",
   ],
 }

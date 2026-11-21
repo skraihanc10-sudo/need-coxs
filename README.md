@@ -1,6 +1,6 @@
-# Need Cox's
+# Cox's Seba
 
-Cox's Bazar services desk. Customers book laundry, WiFi, electricians, plumbers, AC repair, resort cleaning teams, and day labour. Laundry keeps its clothes picker, slots, and cash on delivery. Other jobs are requested, quoted, and tracked. Currency is BDT (৳). The customer app defaults to Bangla, with an English toggle.
+কক্স সেবা. All of Cox's Bazar's services in one place (কক্সবাজারের সব সেবা এক জায়গায়). Customers book laundry, WiFi, electricians, plumbers, AC repair, resort cleaning teams, and day labour. Laundry keeps its clothes picker, slots, and cash on delivery. Other jobs are requested, quoted, and tracked. Currency is BDT (৳). The customer app defaults to Bangla, with an English toggle.
 
 ## Demo logins
 

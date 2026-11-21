@@ -6,8 +6,8 @@ export default function TermsPage() {
     <div>
       <PageBanner title="Terms" crumbs={["Terms"]} />
       <article className="site-wrap max-w-3xl space-y-4 py-14 text-sm leading-7">
-        <p>{brand.name} connects Dhaka homes with independent laundries. The shop is responsible for the clothes after pickup.</p>
-        <p>Menu prices are locked onto the order when you place it. Cash on delivery is collected by the rider. Online methods stay unpaid until a gateway marks them paid.</p>
+        <p>{brand.name} ({brand.nameBn}) connects people in Cox's Bazar with independent providers. {brand.tagline}.</p>
+        <p>A quoted price is locked when you accept it. Cash, bKash, and Nagad are recorded on the visit and are not charged online.</p>
         <p>Cancel before pickup and wallet credit is returned. Passwords are stored only as hashes.</p>
       </article>
     </div>

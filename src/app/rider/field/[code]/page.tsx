@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireUser } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -29,6 +30,7 @@ export default async function FieldJob({ params, searchParams }: { params: Promi
       <p className="mt-2 text-sm">{job.store.name}</p>
       {job.notes ? <p className="mt-2 text-sm">{job.notes}</p> : null}
       <p className="mt-2 font-extrabold">{job.paymentMethod} · {job.price ? taka(job.price) : "Quote pending"}</p>
+      <Link href={`/rider/chat/${job.code}`} className="mt-3 inline-block text-sm font-bold text-[var(--brand)]">Open job chat</Link>
       <div className="mt-4 space-y-2">
         {next.map((status) => (
           <form key={status} action={workerJobAction}>

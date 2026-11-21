@@ -19,6 +19,7 @@ export function routeRole(pathname: string) {
     "/cart",
     "/chat",
     "/hub/jobs",
+    "/help",
   ]
   if (customer.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return "CUSTOMER"
   return null

@@ -1,36 +1,46 @@
+import Link from "next/link"
 import { requireUser, getLocale } from "@/lib/auth"
-import { db } from "@/lib/db"
 import { copy } from "@/lib/i18n"
 import { PageHeader } from "@/components/bits"
-import { LiveRefresh } from "@/components/interactive"
-import { ChatComposer } from "./composer"
+import { listBookingChats, listTickets } from "@/lib/inbox"
 import { formatWhen } from "@/lib/format"
 
-export default async function ChatPage() {
+export default async function ChatInbox() {
   const user = await requireUser(["CUSTOMER"], "/chat")
   const locale = await getLocale()
   const t = copy(locale)
-  const thread = await db.thread.findUnique({
-    where: { customerId: user.id },
-    include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } },
-  })
+  const bn = locale === "bn"
+  const [chats, tickets] = await Promise.all([listBookingChats(user), listTickets(user)])
+  const ticketUnread = tickets.reduce((sum, row) => sum + row.unread, 0)
   return (
-    <div>
+    <div className="pb-6">
       <PageHeader title={t.chatTitle} />
-      <LiveRefresh />
-      <p className="px-4 text-sm text-muted-foreground">{t.chatHint}</p>
-      <div className="mt-3 space-y-2 px-4 pb-4">
-        {thread?.messages.map((message) => {
-          const mine = message.senderId === user.id
-          return (
-            <div key={message.id} className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "ml-auto bg-primary text-primary-foreground" : "bg-muted"}`}>
-              <p>{message.body}</p>
-              <p className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-muted-foreground"}`}>{formatWhen(message.createdAt, locale)}</p>
-            </div>
-          )
-        })}
+      <div className="space-y-2 px-4">
+        <Link href="/chat/desk" className="surface-card flex items-center justify-between p-3">
+          <span>
+            <span className="block font-extrabold">{bn ? "কাস্টমার কেয়ার" : "Customer care"}</span>
+            <span className="text-xs text-muted-foreground">{t.chatHint}</span>
+          </span>
+        </Link>
+        <Link href="/help" className="surface-card flex items-center justify-between p-3">
+          <span className="font-extrabold">{bn ? "সাপোর্ট টিকিট" : "Support tickets"}</span>
+          {ticketUnread ? <span className="grid size-6 place-items-center rounded-full bg-rose-600 text-xs font-bold text-white">{ticketUnread}</span> : null}
+        </Link>
+        <h2 className="pt-3 text-sm font-extrabold">{bn ? "বুকিং চ্যাট" : "Booking chats"}</h2>
+        {!chats.length ? <p className="text-sm text-muted-foreground">{bn ? "বুক করলে এখানে চ্যাট খুলবে।" : "A chat opens here after you book."}</p> : null}
+        {chats.map(({ booking, latest, unread }) => (
+          <Link key={booking.id} href={`/chat/b/${booking.code}`} className="flex items-center justify-between rounded-2xl border px-3 py-3">
+            <span>
+              <span className="block font-bold">{locale === "bn" ? booking.offering.nameBn : booking.offering.name}</span>
+              <span className="text-xs text-muted-foreground">{booking.code} · {latest ? latest.body.slice(0, 60) : booking.store.name}</span>
+            </span>
+            <span className="text-right">
+              {unread ? <span className="grid size-6 place-items-center rounded-full bg-rose-600 text-xs font-bold text-white">{unread}</span> : null}
+              {latest ? <span className="mt-1 block text-[10px] text-muted-foreground">{formatWhen(latest.createdAt, locale)}</span> : null}
+            </span>
+          </Link>
+        ))}
       </div>
-      <ChatComposer placeholder={t.chatPlaceholder} send={t.send} />
     </div>
   )
 }

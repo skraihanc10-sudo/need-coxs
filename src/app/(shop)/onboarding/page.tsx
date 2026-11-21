@@ -6,7 +6,8 @@ import { copy } from "@/lib/i18n"
 export default async function Onboarding({ searchParams }: { searchParams: Promise<{ s?: string }> }) {
   const { s = "0" } = await searchParams
   const step = Math.min(2, Math.max(0, Number(s) || 0))
-  const t = copy(await getLocale())
+  const locale = await getLocale()
+  const t = copy(locale)
   const slides = [
     [t.onboard1, t.onboard1b],
     [t.onboard2, t.onboard2b],
@@ -17,7 +18,7 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
   return (
     <div className="flex min-h-dvh flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
-        <Logo />
+        <Logo bn={locale === "bn"} />
         <img
           src={["/marketing/hero-laundry.jpg", "/marketing/svc-fold.jpg", "/marketing/rider-box.jpg"][step]}
           alt=""

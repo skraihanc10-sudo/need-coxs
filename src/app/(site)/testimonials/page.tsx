@@ -12,7 +12,7 @@ export default async function TestimonialsPage() {
   const reviews = await db.review.findMany({ include: { customer: true, store: true } })
   const cards = [
     ...reviews.map((review) => [review.customer.name, review.comment, review.store.name] as const),
-    ...extras.map(([name, quote]) => [name, quote, "Need Cox's customer"] as const),
+    ...extras.map(([name, quote]) => [name, quote, "Cox's Seba customer"] as const),
   ]
   return (
     <div>

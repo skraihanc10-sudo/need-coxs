@@ -1,4 +1,4 @@
-# Deploy Need Cox's on Coolify
+# Deploy Cox's Seba on Coolify
 
 Self-hosted Coolify v4 (tested against the v4.7.6 Dockerfile build pack with Traefik). The app is a Next.js standalone server. SQLite lives at `/data/needcoxs.db` so a persistent volume keeps orders across redeploys.
 

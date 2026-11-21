@@ -17,6 +17,8 @@ export const STATUS_LABEL: Record<string, { en: string; bn: string }> = {
   ON_THE_WAY: { en: "On the way", bn: "পথে" },
   IN_PROGRESS: { en: "In progress", bn: "চলছে" },
   COMPLETED: { en: "Completed", bn: "সম্পন্ন" },
+  OPEN: { en: "Open", bn: "খোলা" },
+  CLOSED: { en: "Closed", bn: "বন্ধ" },
 }
 
 export function statusLabel(status: string, locale: Locale) {

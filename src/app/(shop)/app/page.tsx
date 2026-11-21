@@ -34,7 +34,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   return (
     <div className="pb-4">
       <div className="flex items-center justify-between px-4 pt-4">
-        <Logo size={30} />
+        <Logo size={30} bn={viewer.locale === "bn"} />
         <div className="flex items-center gap-2">
           <Link href="/profile/language" className="rounded-full bg-[color-mix(in_srgb,var(--accent)_20%,white)] px-3 py-1 text-xs font-extrabold text-[var(--accent-ink)]">
             {viewer.locale === "bn" ? "বাং" : "EN"}
